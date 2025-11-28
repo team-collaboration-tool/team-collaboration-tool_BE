@@ -4,10 +4,13 @@ import lombok.RequiredArgsConstructor;
 import com.hyupmin.domain.user.User;
 import com.hyupmin.dto.user.UserSignupRequestDTO;
 import com.hyupmin.dto.user.UserUpdateRequest;
+import com.hyupmin.dto.user.UserPasswordUpdateRequest;
 import com.hyupmin.repository.user.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +67,50 @@ public class UserService {
         if (request.getPhone() != null) user.setPhone(request.getPhone());
         if (request.getField() != null) user.setField(request.getField());
 
+        userRepository.save(user);
+    }
+
+    /**
+     * 비밀번호 확인 (본인 인증용)
+     */
+    public boolean verifyPassword(String email, String password) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        return passwordEncoder.matches(password, user.getPassword());
+    }
+
+    @Transactional
+    public void updatePassword(String email, UserPasswordUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 현재 비밀번호 일치 여부 확인
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 새 비밀번호 암호화 후 저장
+        String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
+        user.setPassword(encodedNewPassword);
+    }
+
+    /**
+     * 회원 탈퇴 (Soft Delete)
+     */
+    @Transactional
+    public void deleteUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 이미 탈퇴한 계정인지 확인
+        if (user.getIsDeleted()) {
+            throw new IllegalArgumentException("이미 탈퇴한 계정입니다.");
+        }
+
+        // Soft Delete 처리
+        user.setIsDeleted(true);
+        user.setDeletedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 }

@@ -123,4 +123,63 @@ public class UserController {
             return ResponseEntity.internalServerError().body("서버 내부 오류가 발생했습니다.");
         }
     }
+
+    /**
+     * 비밀번호 확인 (본인 인증용)
+     */
+    @PostMapping("/verify-password")
+    public ResponseEntity<?> verifyPassword(
+            @AuthenticationPrincipal String userEmail,
+            @RequestBody PasswordVerifyRequest request) {
+        try {
+            boolean isValid = userService.verifyPassword(userEmail, request.getPassword());
+
+            if (isValid) {
+                return ResponseEntity.ok(Map.of(
+                        "valid", true,
+                        "message", "비밀번호가 확인되었습니다."
+                ));
+            } else {
+                return ResponseEntity.status(401).body(Map.of(
+                        "valid", false,
+                        "message", "비밀번호가 일치하지 않습니다."
+                ));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * 비밀번호 변경
+     */
+    @PatchMapping("/update/password")
+    public ResponseEntity<String> updatePassword(
+            @AuthenticationPrincipal String userEmail,
+            @RequestBody UserPasswordUpdateRequest request) {
+        try {
+            userService.updatePassword(userEmail, request);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
+    }
+
+    /**
+     * 회원 탈퇴
+     */
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteUser(@AuthenticationPrincipal String userEmail) {
+        try {
+            userService.deleteUser(userEmail);
+            return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("회원 탈퇴 중 오류가 발생했습니다.");
+        }
+    }
 }
