@@ -6,6 +6,7 @@ import com.hyupmin.domain.user.User;
 import com.hyupmin.service.user.UserService;
 import com.hyupmin.config.jwt.JwtTokenProvider;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -84,5 +85,42 @@ public class UserController {
 
         String token = jwtTokenProvider.generateToken(user.getEmail());
         return ResponseEntity.ok(Map.of("token", token));
+    }
+
+    /**
+     * 내 정보 조회
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoResponse> getMyInfo(@AuthenticationPrincipal String userEmail) {
+        User user = userService.findByEmail(userEmail);
+
+        UserInfoResponse response = new UserInfoResponse(
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getField()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 프로필 수정
+     */
+    @PatchMapping("/update")
+    public ResponseEntity<String> updateUser(
+            @AuthenticationPrincipal String userEmail,
+            @RequestBody UserUpdateRequest request) {
+
+        try {
+            userService.updateUser(userEmail, request);
+            return ResponseEntity.ok("회원 정보가 성공적으로 수정되었습니다.");
+        } catch (IllegalArgumentException e) {
+            // 존재하지 않는 사용자 등 비즈니스 로직 예외 처리
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            // 그 외 예기치 못한 오류 처리
+            return ResponseEntity.internalServerError().body("서버 내부 오류가 발생했습니다.");
+        }
     }
 }
