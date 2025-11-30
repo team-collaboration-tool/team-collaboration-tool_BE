@@ -93,6 +93,7 @@ public class CalendarEventService {
                 project,
                 user,
                 request.getTitle(),
+                request.getColor(),
                 request.getStartTime(),
                 request.getEndTime(),
                 request.getDescription()
@@ -167,6 +168,7 @@ public class CalendarEventService {
 
         event.update(
                 request.getTitle(),
+                request.getColor(),
                 request.getStartTime(),
                 request.getEndTime(),
                 request.getDescription(),

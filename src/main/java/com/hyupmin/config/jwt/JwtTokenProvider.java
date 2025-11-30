@@ -2,7 +2,6 @@ package com.hyupmin.config.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -11,19 +10,15 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+    private static final String SECRET_KEY = "hyupmin-secret-key-for-jwt-2025-very-secure"; // ⚠️ 실제론 .env로 분리
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24; // 24시간
 
-    @Value("${jwt.expiration}")
-    private long expirationTime;
+    private final Key key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
-    /**
-     * JWT 토큰 생성
-     */
+    // 🔹 토큰 생성
     public String generateToken(String email) {
-        Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime);
+        Date expiryDate = new Date(now.getTime() + EXPIRATION_TIME);
 
         return Jwts.builder()
                 .setSubject(email)
@@ -33,11 +28,8 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /**
-     * 토큰에서 이메일 추출
-     */
+    // 🔹 토큰에서 userEmail 추출
     public String getEmailFromToken(String token) {
-        Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
         return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
@@ -46,12 +38,9 @@ public class JwtTokenProvider {
                 .getSubject();
     }
 
-    /**
-     * 토큰 유효성 검증
-     */
+    // 🔹 토큰 유효성 검증
     public boolean validateToken(String token) {
         try {
-            Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {

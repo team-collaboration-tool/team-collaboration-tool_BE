@@ -1,33 +1,26 @@
-package com.hyupmin.domain.timeResponse;
+package com.hyupmin.domain.voteResponse;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import com.hyupmin.domain.timepoll.TimePoll;
 import com.hyupmin.domain.user.User;
-import java.time.LocalDateTime;
+import com.hyupmin.domain.voteOption.VoteOption;
 
 @Entity
-@Table(name = "time_response")
+@Table(name = "vote_response")
 @Getter
 @NoArgsConstructor
-public class TimeResponse {
+public class VoteResponse {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long responsePk;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "poll_pk", nullable = false)
-    private TimePoll poll;
+    @JoinColumn(name = "option_pk", nullable = false)
+    private VoteOption option;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_pk", nullable = false)
     private User user;
-
-    @Column(nullable = false)
-    private LocalDateTime startTimeUtc;
-
-    @Column(nullable = false)
-    private LocalDateTime endTimeUtc;
 }

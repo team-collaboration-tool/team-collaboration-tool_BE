@@ -1,8 +1,6 @@
 package com.hyupmin.domain.timepoll;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import com.hyupmin.domain.project.Project;
@@ -16,8 +14,6 @@ import java.util.List;
 @Table(name = "time_polls")
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class TimePoll {
 
     @Id

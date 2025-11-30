@@ -34,6 +34,7 @@ public class CalendarEventResponse {
     private Long createUserId;
     private String createUserName;
     private String title;
+    private String color;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String description;
@@ -50,6 +51,7 @@ public class CalendarEventResponse {
                 .createUserId(event.getCreateUser().getUserPk())
                 .createUserName(event.getCreateUser().getName())
                 .title(event.getTitle())
+                .color(event.getColor())
                 .startTime(event.getStartTime())
                 .endTime(event.getEndTime())
                 .description(event.getDescription())
