@@ -3,6 +3,7 @@ package com.hyupmin.domain.user;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.hyupmin.domain.project.Project;
@@ -37,6 +38,14 @@ public class User {
 
     private String field;
 
+    // Soft Delete 필드
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    @Column
+    private LocalDateTime deletedAt;
+
 
     public User(String password, String name, String email, String phone, String field) {
         this.password = password;
@@ -44,6 +53,7 @@ public class User {
         this.email = email;
         this.phone = phone;
         this.field = field;
+        this.isDeleted = false;  // 기본값 설정
     }
 
     // 연결 관계
