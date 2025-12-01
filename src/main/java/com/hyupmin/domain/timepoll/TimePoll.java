@@ -11,6 +11,7 @@ import com.hyupmin.domain.user.User;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "time_polls")
@@ -48,5 +49,6 @@ public class TimePoll {
     private LocalTime endTimeOfDay;
 
     @OneToMany(mappedBy = "poll", cascade = CascadeType.ALL)
-    private List<TimeResponse> responses;
+    @Builder.Default
+    private List<TimeResponse> responses = new ArrayList<>();
 }
