@@ -31,7 +31,10 @@ public class TimePollDto {
         private String title;
         private LocalDate startDate;
         private LocalDate endDate;
-        private Integer userCount; // 참여자 수 등 (옵션)
+        private Integer duration;     // 며칠짜리인지
+        private LocalTime startTime;  // 하루 시작 시간
+        private LocalTime endTime;    // 하루 끝 시간
+        private Integer userCount;    // 참여자 수
     }
 
     // 3. [제출 요청] 내 시간표 제출

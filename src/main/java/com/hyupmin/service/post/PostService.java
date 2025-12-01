@@ -1,5 +1,6 @@
 package com.hyupmin.service.post;
 
+import com.hyupmin.repository.vote.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import com.hyupmin.domain.post.Post;
 import com.hyupmin.domain.project.Project;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import com.hyupmin.repository.attachmentFile.AttachmentFileRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.hyupmin.file.FileStore;
@@ -36,6 +38,8 @@ public class PostService {
     private final ProjectRepository projectRepository;
     private final AttachmentFileRepository attachmentFileRepository;
 
+    private final VoteRepository voteRepository;
+
     /**
      * 게시글 생성
      */
@@ -52,29 +56,29 @@ public class PostService {
         Project project = projectRepository.findById(request.getProjectPk())
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        //    FileStore 내부에서 단일 파일 용량, 확장자 검증까지 수행
-        List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);;
+        // 3. 파일 저장
+        List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);
 
-        // 3. Post 엔티티 생성
+        // 4. Post 엔티티 생성
         Post newPost = Post.builder()
                 .project(project)
                 .user(user)
                 .title(request.getTitle())
                 .content(request.getContent())
-                .isNotice(request.getIsNotice())
-                .hasVoting(request.getHasVoting())
+                .isNotice(Boolean.TRUE.equals(request.getIsNotice()))
+                .hasVoting(Boolean.TRUE.equals(request.getHasVoting()))
                 .hasFile(attachmentFiles != null && !attachmentFiles.isEmpty())
                 .build();
 
-        //첨부파일 게시글 연관관계
+        // 첨부파일 연관관계
         if (attachmentFiles != null) {
             for (AttachmentFile file : attachmentFiles) {
                 file.setPost(newPost);
             }
         }
 
-        // 4. 투표 생성 로직
-        if (request.getHasVoting() != null && request.getHasVoting()) {
+        // 5. 투표 생성 로직
+        if (Boolean.TRUE.equals(request.getHasVoting())) {
             if (request.getVoteTitle() == null
                     || request.getVoteOptions() == null
                     || request.getVoteOptions().isEmpty()) {
@@ -82,32 +86,37 @@ public class PostService {
             }
 
             Vote vote = Vote.builder()
-                    .title(request.getVoteTitle())
                     .post(newPost)
+                    .title(request.getVoteTitle())
+                    .startTime(LocalDateTime.now())
+                    .endTime(null) // 필요하면 PostCreateRequest에 endTime 추가해서 받기
+                    .allowMultipleChoices(false) // 기본값
+                    .isAnonymous(false)         // 기본값
                     .build();
 
             for (String optionText : request.getVoteOptions()) {
+                if (optionText == null || optionText.isBlank()) continue;
                 VoteOption option = VoteOption.builder()
                         .content(optionText)
-                        .vote(vote)
+                        .count(0)
                         .build();
                 vote.addOption(option);
             }
 
-            newPost.setVote(vote);
+            newPost.setVote(vote); // hasVoting도 true로 맞춰짐
         }
 
-        // 5. 저장
+        // 6. 저장
         Post savedPost = postRepository.save(newPost);
 
-        //첨부파일 DB에 저장
+        // 첨부파일 DB 저장
         if (attachmentFiles != null) {
             for (AttachmentFile file : attachmentFiles) {
                 attachmentFileRepository.save(file);
             }
         }
 
-        // 6. DTO 반환
+        // 7. DTO 반환
         return new PostResponse(savedPost);
     }
 
@@ -156,13 +165,12 @@ public class PostService {
         // 4. 게시글 기본 정보 수정
         post.update(request.getTitle(), request.getContent(), request.getIsNotice());
 
-        // 5. 기존 첨부파일 조회 (논리 삭제 안 된 것만)
+        // 5. 기존 첨부파일 조회
         List<AttachmentFile> existingFiles =
                 attachmentFileRepository.findByPost_PostPkAndIsDeletedFalse(postId);
 
-        // 6. 새로 업로드한 파일 저장 (있다면)
+        // 6. 새 파일 저장
         List<AttachmentFile> newFiles = fileStore.storeFiles(files);
-
         if (newFiles != null) {
             for (AttachmentFile file : newFiles) {
                 file.setPost(post);
@@ -170,14 +178,101 @@ public class PostService {
             }
         }
 
-        // 7. hasFile 플래그 재계산
+        // 7. hasFile 재계산
         boolean hasAnyFile =
                 (existingFiles != null && !existingFiles.isEmpty())
                         || (newFiles != null && !newFiles.isEmpty());
-
         post.setHasFile(hasAnyFile);
 
-        // 8. 응답 반환
+        // 8. 투표 로직 (hasVoting가 null이면 건드리지 않음)
+        if (request.getHasVoting() != null) {
+
+            if (!request.getHasVoting()) {
+                // 기존 투표가 있다면 삭제
+                if (post.getVote() != null) {
+                    Vote existingVote = post.getVote();
+                    post.setVote(null);          // Post 기준 관계 해제
+                    voteRepository.delete(existingVote); // 실제 DB 삭제
+                }
+                post.setHasVoting(false);
+
+            } else {
+                // 투표 켜기 또는 수정하기
+                if (post.getVote() == null) {
+                    // 1) 기존에 투표 없던 글에 새로 생성
+                    if (request.getVoteTitle() == null
+                            || request.getVoteOptions() == null
+                            || request.getVoteOptions().isEmpty()) {
+                        throw new IllegalArgumentException("투표 제목과 항목은 필수입니다.");
+                    }
+
+                    Vote vote = Vote.builder()
+                            .post(post)
+                            .title(request.getVoteTitle())
+                            .startTime(LocalDateTime.now())
+                            .endTime(request.getVoteEndTime())
+                            .allowMultipleChoices(
+                                    request.getAllowMultipleChoices() != null
+                                            ? request.getAllowMultipleChoices()
+                                            : false
+                            )
+                            .isAnonymous(
+                                    request.getIsAnonymous() != null
+                                            ? request.getIsAnonymous()
+                                            : false
+                            )
+                            .build();
+
+                    if (request.getVoteOptions() != null) {
+                        for (String optionText : request.getVoteOptions()) {
+                            if (optionText == null || optionText.isBlank()) continue;
+                            VoteOption option = VoteOption.builder()
+                                    .content(optionText)
+                                    .count(0)
+                                    .build();
+                            vote.addOption(option);
+                        }
+                    }
+
+                    post.setVote(vote);
+                    post.setHasVoting(true);
+
+                } else {
+                    // 2) 기존 투표 수정
+                    Vote vote = post.getVote();
+
+                    if (request.getVoteTitle() != null) {
+                        vote.setTitle(request.getVoteTitle());
+                    }
+                    if (request.getVoteEndTime() != null) {
+                        vote.setEndTime(request.getVoteEndTime());
+                    }
+                    if (request.getAllowMultipleChoices() != null) {
+                        vote.setAllowMultipleChoices(request.getAllowMultipleChoices());
+                    }
+                    if (request.getIsAnonymous() != null) {
+                        vote.setIsAnonymous(request.getIsAnonymous());
+                    }
+
+                    if (request.getVoteOptions() != null) {
+                        // 옵션 전체 갈아엎기
+                        vote.clearOptions();
+                        for (String optionText : request.getVoteOptions()) {
+                            if (optionText == null || optionText.isBlank()) continue;
+                            VoteOption option = VoteOption.builder()
+                                    .content(optionText)
+                                    .count(0)
+                                    .build();
+                            vote.addOption(option);
+                        }
+                    }
+
+                    post.setHasVoting(true);
+                }
+            }
+        }
+
+        // 9. 응답 반환
         return new PostResponse(post);
     }
 

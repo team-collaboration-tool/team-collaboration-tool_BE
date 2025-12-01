@@ -128,27 +128,55 @@ public class VoteService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 다중선택 허용이면, reCast의 의미가 애매해지니까
-        // "단일 선택 투표일 때만 사용"이라는 전제로 구현
-        if (Boolean.TRUE.equals(vote.getAllowMultipleChoices())) {
-            throw new IllegalStateException("다중 선택 투표에서는 재투표 API를 사용할 수 없습니다.");
+        // 1) 단일 선택 투표일 때 (allowMultipleChoices = false)
+        if (Boolean.FALSE.equals(vote.getAllowMultipleChoices())) {
+
+            // 이 유저가 이 투표에서 했던 이전 선택들 전부 조회
+            List<VoteRecord> previousRecords =
+                    voteRecordRepository.findByUserAndVoteOption_Vote(user, vote);
+
+            // 득표수 줄이고 기록 삭제
+            for (VoteRecord record : previousRecords) {
+                record.getVoteOption().decreaseCount();
+            }
+            voteRecordRepository.deleteAll(previousRecords);
+
+            // 새 옵션으로 투표
+            VoteRecord newRecord = VoteRecord.builder()
+                    .user(user)
+                    .voteOption(newOption)
+                    .build();
+            voteRecordRepository.save(newRecord);
+            newOption.increaseCount();
+
+            return;
         }
 
-        // 기존 기록 제거
-        List<VoteRecord> previousRecords =
-                voteRecordRepository.findByUserAndVoteOption_Vote(user, vote);
+        // 2) 다중 선택 투표일 때 (allowMultipleChoices = true)
+        // 여기서는 "이 옵션에 대한 내 선택을 토글"하는 개념으로 처리
 
-        for (VoteRecord record : previousRecords) {
-            record.getVoteOption().decreaseCount();
+        // 이 유저가 이 옵션에 이미 투표했는지 확인
+        boolean alreadyVotedThisOption =
+                voteRecordRepository.existsByUserAndVoteOption(user, newOption);
+
+        if (alreadyVotedThisOption) {
+            // 이미 선택한 항목이면 → 선택 취소 (득표수 -1 & 기록 삭제)
+            List<VoteRecord> records =
+                    voteRecordRepository.findByUserAndVoteOption(user, newOption);
+
+            for (VoteRecord record : records) {
+                record.getVoteOption().decreaseCount();
+            }
+            voteRecordRepository.deleteAll(records);
+
+        } else {
+            // 아직 선택 안 한 항목이면 → 새로 선택 (득표수 +1 & 기록 추가)
+            VoteRecord newRecord = VoteRecord.builder()
+                    .user(user)
+                    .voteOption(newOption)
+                    .build();
+            voteRecordRepository.save(newRecord);
+            newOption.increaseCount();
         }
-        voteRecordRepository.deleteAll(previousRecords);
-
-        // 새 옵션 기록
-        VoteRecord newRecord = VoteRecord.builder()
-                .user(user)
-                .voteOption(newOption)
-                .build();
-        voteRecordRepository.save(newRecord);
-        newOption.increaseCount();
     }
 }

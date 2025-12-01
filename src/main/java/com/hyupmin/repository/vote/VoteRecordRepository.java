@@ -16,4 +16,6 @@ public interface VoteRecordRepository extends JpaRepository<VoteRecord, Long> {
 
     // 같은 옵션을 두 번 찍는 것 방지용
     boolean existsByUserAndVoteOption(User user, VoteOption voteOption);
+
+    List<VoteRecord> findByUserAndVoteOption(User user, VoteOption voteOption);
 }
