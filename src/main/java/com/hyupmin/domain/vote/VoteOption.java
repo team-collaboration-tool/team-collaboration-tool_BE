@@ -36,5 +36,8 @@ public class VoteOption {
     }
     //기존 기록 삭제
     public void decreaseCount() {
+        if (this.count > 0) {
+            this.count--;
+        }
     }
 }

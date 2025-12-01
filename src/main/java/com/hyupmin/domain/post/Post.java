@@ -51,7 +51,7 @@ public class Post extends BaseTimeEntity {
     @Builder.Default
     private Boolean hasFile = false;
 
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private Vote vote;
 
 
@@ -79,6 +79,8 @@ public class Post extends BaseTimeEntity {
         if (vote != null && vote.getPost() != this) {
             vote.setPost(this);
         }
+        // hasVoting 자동 동기화
+        this.hasVoting = (vote != null);
     }
 
     // 파일 여부 설정

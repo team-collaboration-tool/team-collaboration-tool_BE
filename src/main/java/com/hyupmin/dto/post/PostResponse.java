@@ -2,11 +2,12 @@ package com.hyupmin.dto.post;
 
 import lombok.Getter;
 import com.hyupmin.domain.post.Post;
-//import com.hyupmin.dto.voteResponse.VoteResponse;
+import com.hyupmin.domain.attachmentFile.AttachmentFile;
+import com.hyupmin.dto.vote.VoteResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
-// import java.util.stream.Collectors; // (주석 처리된 곳에서만 쓰므로 일단 삭제)
+import java.util.stream.Collectors;
 
 @Getter
 public class PostResponse {
@@ -22,7 +23,10 @@ public class PostResponse {
     private Boolean hasVoting;
     private Boolean hasFile;
 
-    //private VoteResponse vote;
+    // 투표 정보 (게시글에 투표가 있을 경우에만 포함)
+    private VoteResponse vote;
+
+    // 첨부파일 ID 목록
     private List<Long> attachmentIds;
 
     // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
@@ -38,7 +42,20 @@ public class PostResponse {
         this.hasVoting = post.getHasVoting();
         this.hasFile = post.getHasFile();
 
-        // (주석 처리된 투표/첨부파일 로직)
-        // ...
+        // 투표 정보 매핑 (hasVoting == true 이고 실제 Vote가 있을 때만)
+        if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
+            this.vote = new VoteResponse(post.getVote());
+        } else {
+            this.vote = null;
+        }
+
+        // 첨부파일 ID 목록 매핑
+        if (post.getAttachmentFiles() != null) {
+            this.attachmentIds = post.getAttachmentFiles().stream()
+                    .filter(file -> !file.isDeleted())
+                    .map(AttachmentFile::getAttachmentPk)
+                    .toList();
+        }
+
     }
 }

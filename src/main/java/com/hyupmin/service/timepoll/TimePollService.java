@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -58,19 +59,19 @@ public class TimePollService {
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
 
         return timePollRepository.findAll().stream()
-                .filter(p -> p.getProject().getPk().equals(projectId))
+                .filter(p -> p.getProject().getProjectPk().equals(projectId))
                 .map(p -> {
 
-                    // startDate ~ endDate 기간(며칠) 계산
                     long days = ChronoUnit.DAYS.between(p.getStartDate(), p.getEndDate()) + 1;
 
                     return TimePollDto.PollSummary.builder()
                             .pollId(p.getPollPk())
                             .title(p.getTitle())
-                            .startDate(p.getStartDate().toString())          // LocalDate -> String
-                            .duration((int) days)                           // 계산된 며칠짜리
-                            .startTime(p.getStartTimeOfDay().toString())   // LocalTime -> String
-                            .endTime(p.getEndTimeOfDay().toString())       // LocalTime -> String
+                            .startDate(p.getStartDate())             // 그대로 LocalDate 사용
+                            .endDate(p.getEndDate())
+                            .duration((int) days)                    // 계산된 며칠짜리
+                            .startTime(p.getStartTimeOfDay())        // LocalTime 그대로
+                            .endTime(p.getEndTimeOfDay())
                             .userCount(
                                     p.getResponses() == null ? 0 : p.getResponses().size()
                             )
