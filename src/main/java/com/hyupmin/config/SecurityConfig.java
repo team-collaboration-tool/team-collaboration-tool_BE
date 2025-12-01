@@ -14,7 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider; // ✅ 주입
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -58,11 +58,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // ✅ 기본 로그인 UI 및 Basic Auth 비활성화
+                // 기본 로그인 UI 및 Basic Auth 비활성화
                 .formLogin(login -> login.disable())
                 .httpBasic(basic -> basic.disable())
 
-                // ✅ JWT 필터 추가 (UsernamePasswordAuthenticationFilter 전에 실행)
+                // JWT 필터 추가 (UsernamePasswordAuthenticationFilter 전에 실행)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
