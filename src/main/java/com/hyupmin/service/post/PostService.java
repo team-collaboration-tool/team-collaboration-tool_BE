@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.hyupmin.repository.attachmentFile.AttachmentFileRepository;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,6 +34,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final AttachmentFileRepository attachmentFileRepository;
 
     /**
      * 게시글 생성
@@ -50,8 +52,8 @@ public class PostService {
         Project project = projectRepository.findById(request.getProjectPk())
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        // (첨부파일 저장 로직은 나중에)
-        // List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);
+        //    FileStore 내부에서 단일 파일 용량, 확장자 검증까지 수행
+        List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);;
 
         // 3. Post 엔티티 생성
         Post newPost = Post.builder()
@@ -61,15 +63,15 @@ public class PostService {
                 .content(request.getContent())
                 .isNotice(request.getIsNotice())
                 .hasVoting(request.getHasVoting())
-                // .hasFile(!attachmentFiles.isEmpty())
+                .hasFile(attachmentFiles != null && !attachmentFiles.isEmpty())
                 .build();
 
-        // 첨부파일 연관관계 설정은 일단 주석
-        /*
-        for (AttachmentFile file : attachmentFiles) {
-            file.setPost(newPost);
+        //첨부파일 게시글 연관관계
+        if (attachmentFiles != null) {
+            for (AttachmentFile file : attachmentFiles) {
+                file.setPost(newPost);
+            }
         }
-        */
 
         // 4. 투표 생성 로직
         if (request.getHasVoting() != null && request.getHasVoting()) {
@@ -97,6 +99,13 @@ public class PostService {
 
         // 5. 저장
         Post savedPost = postRepository.save(newPost);
+
+        //첨부파일 DB에 저장
+        if (attachmentFiles != null) {
+            for (AttachmentFile file : attachmentFiles) {
+                attachmentFileRepository.save(file);
+            }
+        }
 
         // 6. DTO 반환
         return new PostResponse(savedPost);
@@ -126,18 +135,49 @@ public class PostService {
      * 게시글 수정
      */
     @Transactional
-    public PostResponse updatePost(Long postId, PostUpdateRequest request, String userEmail) {
+    public PostResponse updatePost(Long postId,
+                                   PostUpdateRequest request,
+                                   List<MultipartFile> files,
+                                   String userEmail) throws IOException {
+
+        // 1. 사용자 조회
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 2. 게시글 조회
         Post post = postRepository.findPostWithUserAndProjectById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
+        // 3. 권한 체크
         if (!post.getUser().equals(user)) {
             throw new SecurityException("수정 권한이 없습니다.");
         }
 
+        // 4. 게시글 기본 정보 수정
         post.update(request.getTitle(), request.getContent(), request.getIsNotice());
+
+        // 5. 기존 첨부파일 조회 (논리 삭제 안 된 것만)
+        List<AttachmentFile> existingFiles =
+                attachmentFileRepository.findByPost_PostPkAndIsDeletedFalse(postId);
+
+        // 6. 새로 업로드한 파일 저장 (있다면)
+        List<AttachmentFile> newFiles = fileStore.storeFiles(files);
+
+        if (newFiles != null) {
+            for (AttachmentFile file : newFiles) {
+                file.setPost(post);
+                attachmentFileRepository.save(file);
+            }
+        }
+
+        // 7. hasFile 플래그 재계산
+        boolean hasAnyFile =
+                (existingFiles != null && !existingFiles.isEmpty())
+                        || (newFiles != null && !newFiles.isEmpty());
+
+        post.setHasFile(hasAnyFile);
+
+        // 8. 응답 반환
         return new PostResponse(post);
     }
 

@@ -1,11 +1,10 @@
 package com.hyupmin.domain.attachmentFile;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import com.hyupmin.domain.post.Post;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "attachments_file")
@@ -19,18 +18,29 @@ public class AttachmentFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long attachmentPk;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_pk", nullable = false)
     private Post post;
 
     @Column(nullable = false)
-    private String fileName;
+    private String originalFileName;
 
     @Column(nullable = false)
-    private String storeFileName; // 서버에 저장된 안 겹치는 파일명 (예: uuid-내사진.jpg)
+    private String storedFileName;
 
-    // 연관관계 편의 메서드
-    public void setPost(Post post) {
-        this.post = post;
-    }
+    @Column(nullable = false)
+    private String filePath;
+
+    @Column(nullable = false)
+    private Long fileSize;
+
+    @Column(nullable = false)
+    private String fileType;
+
+    @Column(nullable = false)
+    private boolean isDeleted;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 }
