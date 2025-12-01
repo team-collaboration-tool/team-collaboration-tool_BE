@@ -9,6 +9,7 @@ import com.hyupmin.domain.projectUser.ProjectUser.ProjectStatus; // Status ÏûÑÌè
 @Getter
 @Builder
 public class ProjectMemberResponse {
+    private Long projectUserPk;
     private Long userPk;
     private String name;
     private String email;
@@ -17,6 +18,7 @@ public class ProjectMemberResponse {
 
     public static ProjectMemberResponse from(ProjectUser projectUser) {
         return ProjectMemberResponse.builder()
+                .projectUserPk(projectUser.getProjectUserPk())
                 .userPk(projectUser.getUser().getUserPk())
                 .name(projectUser.getUser().getName())
                 .email(projectUser.getUser().getEmail())

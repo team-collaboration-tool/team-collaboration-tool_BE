@@ -123,7 +123,7 @@ public class ProjectController {
     }
 
     // 프로젝트 참여 요청 거절 (관리자 권한)
-    @DeleteMapping("/{projectId}/join-requests/{projectUserPk}")
+    @DeleteMapping("/{projectId}/reject/{projectUserPk}")
     public ResponseEntity<Void> rejectJoin(
             @PathVariable Long projectId,
             @PathVariable Long projectUserPk, // 거절할 요청의 ProjectUser PK
