@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -55,14 +56,26 @@ public class TimePollService {
     // 2. 투표 목록 조회 (Summary)
     @Transactional(readOnly = true)
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
-        return timePollRepository.findAll().stream() // 실제론 projectPk로 필터링 필요
-                .filter(p -> p.getProject().getProjectPk().equals(projectId))
-                .map(p -> TimePollDto.PollSummary.builder()
-                        .pollId(p.getPollPk())
-                        .title(p.getTitle())
-                        .startDate(p.getStartDate())
-                        .endDate(p.getEndDate())
-                        .build())
+
+        return timePollRepository.findAll().stream()
+                .filter(p -> p.getProject().getPk().equals(projectId))
+                .map(p -> {
+
+                    // startDate ~ endDate 기간(며칠) 계산
+                    long days = ChronoUnit.DAYS.between(p.getStartDate(), p.getEndDate()) + 1;
+
+                    return TimePollDto.PollSummary.builder()
+                            .pollId(p.getPollPk())
+                            .title(p.getTitle())
+                            .startDate(p.getStartDate().toString())          // LocalDate -> String
+                            .duration((int) days)                           // 계산된 며칠짜리
+                            .startTime(p.getStartTimeOfDay().toString())   // LocalTime -> String
+                            .endTime(p.getEndTimeOfDay().toString())       // LocalTime -> String
+                            .userCount(
+                                    p.getResponses() == null ? 0 : p.getResponses().size()
+                            )
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
