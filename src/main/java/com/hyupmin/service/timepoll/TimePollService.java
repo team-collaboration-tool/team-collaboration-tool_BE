@@ -56,7 +56,7 @@ public class TimePollService {
     @Transactional(readOnly = true)
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
         return timePollRepository.findAll().stream() // 실제론 projectPk로 필터링 필요
-                .filter(p -> p.getProject().getPk().equals(projectId))
+                .filter(p -> p.getProject().getProjectPk().equals(projectId))
                 .map(p -> TimePollDto.PollSummary.builder()
                         .pollId(p.getPollPk())
                         .title(p.getTitle())

@@ -93,12 +93,11 @@ public class CalendarEventService {
                 project,
                 user,
                 request.getTitle(),
-                request.getColor(),
                 request.getStartTime(),
                 request.getEndTime(),
                 request.getDescription()
         );
-        event.setParticipants(participants);
+        event.setParticipants(participants); // ✅ 참가자 설정
 
         CalendarEvent savedEvent = calendarEventRepository.save(event);
         return CalendarEventResponse.from(savedEvent);
@@ -168,7 +167,6 @@ public class CalendarEventService {
 
         event.update(
                 request.getTitle(),
-                request.getColor(),
                 request.getStartTime(),
                 request.getEndTime(),
                 request.getDescription(),

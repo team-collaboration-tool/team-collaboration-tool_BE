@@ -13,10 +13,10 @@ import java.util.List; // List import
 @NoArgsConstructor
 public class CalendarEventCreateRequest {
     private String title;
-    private String color;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String description;
 
+    // 참가자 Pk 리스트 추가
     private List<Long> participantUserPks = new ArrayList<>();
 }

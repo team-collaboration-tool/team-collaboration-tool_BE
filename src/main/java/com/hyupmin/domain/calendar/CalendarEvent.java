@@ -30,6 +30,7 @@ public class CalendarEvent {
     @JoinColumn(name = "create_user_pk", nullable = false)
     private User createUser;
 
+    // ✅ USECASE #21: 참가자 구현
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "calendar_event_participants", // 중간 테이블
@@ -39,10 +40,7 @@ public class CalendarEvent {
     private Set<User> participants = new HashSet<>();
 
     @Column(nullable = false)
-    private String title;
-
-    @Column(length = 20)
-    private String color;
+    private String title; // DBML: title
 
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime; // DBML: start_time (timestamp)
@@ -53,25 +51,26 @@ public class CalendarEvent {
     @Column(columnDefinition = "TEXT")
     private String description; // DBML: description
 
-    public CalendarEvent(Project project, User createUser, String title, String color, LocalDateTime startTime, LocalDateTime endTime, String description) {
+    // 생성자
+    public CalendarEvent(Project project, User createUser, String title, LocalDateTime startTime, LocalDateTime endTime, String description) {
         this.project = project;
         this.createUser = createUser;
         this.title = title;
-        this.color = color;
         this.startTime = startTime;
         this.endTime = endTime;
         this.description = description;
     }
 
-    public void update(String title, String color, LocalDateTime startTime, LocalDateTime endTime, String description, Set<User> participants) {
+    // 비즈니스 로직: 일정 수정
+    public void update(String title, LocalDateTime startTime, LocalDateTime endTime, String description, Set<User> participants) {
         if (title != null) this.title = title;
-        if (color != null) this.color = color;
         if (startTime != null) this.startTime = startTime;
         if (endTime != null) this.endTime = endTime;
         if (description != null) this.description = description;
-        if (participants != null) this.participants = participants;
+        if (participants != null) this.participants = participants; // ✅ 참가자 업데이트
     }
 
+    // ✅ USECASE #21: 권한 확인용 헬퍼 메서드
     public boolean isParticipant(String userEmail) {
         return participants.stream()
                 .anyMatch(user -> user.getEmail().equals(userEmail));
