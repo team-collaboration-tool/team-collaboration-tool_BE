@@ -98,7 +98,7 @@ public class CalendarEventService {
                 request.getEndTime(),
                 request.getDescription()
         );
-        event.setParticipants(participants); // ✅ 참가자 설정
+        event.setParticipants(participants);
 
         CalendarEvent savedEvent = calendarEventRepository.save(event);
         return CalendarEventResponse.from(savedEvent);
