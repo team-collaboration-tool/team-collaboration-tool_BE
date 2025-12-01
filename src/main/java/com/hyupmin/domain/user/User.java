@@ -8,7 +8,7 @@ import java.util.List;
 
 import com.hyupmin.domain.project.Project;
 import com.hyupmin.domain.projectUser.ProjectUser;
-import com.hyupmin.domain.shortcut.Shortcut;
+//import com.hyupmin.domain.shortcut.Shortcut;
 import com.hyupmin.domain.post.Post;
 
 @Entity
@@ -63,8 +63,8 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectUser> projectUsers;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Shortcut> shortcuts;
+    //@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    //private List<Shortcut> shortcuts;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
