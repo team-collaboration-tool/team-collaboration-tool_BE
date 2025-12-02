@@ -102,40 +102,68 @@ public class TimePollService {
 
     // ★ 4. 상세 조회 (2차원 배열 히트맵 변환 로직) ★
     @Transactional(readOnly = true)
-    public TimePollDto.DetailResponse getPollDetailGrid(Long pollId) {
+    public TimePollDto.DetailResponse getPollDetailGrid(Long pollId, Long userId) {
         TimePoll poll = timePollRepository.findById(pollId).orElseThrow();
+
+        // 팀 전체 응답
         List<TimeResponse> allResponses = timeResponseRepository.findByPoll_PollPk(pollId);
+        // 현재 유저 응답
+        List<TimeResponse> myResponses =
+                timeResponseRepository.findByPoll_PollPkAndUser_UserPk(pollId, userId);
 
         // A. 시간 슬롯(행/열) 계산
-        long totalDays = Duration.between(poll.getStartDate().atStartOfDay(), poll.getEndDate().atStartOfDay()).toDays() + 1;
-        long minutesPerDay = Duration.between(poll.getStartTimeOfDay(), poll.getEndTimeOfDay()).toMinutes();
+        long totalDays = Duration.between(
+                poll.getStartDate().atStartOfDay(),
+                poll.getEndDate().atStartOfDay()
+        ).toDays() + 1;
+
+        long minutesPerDay = Duration.between(
+                poll.getStartTimeOfDay(),
+                poll.getEndTimeOfDay()
+        ).toMinutes();
+
         int slotsPerDay = (int) (minutesPerDay / 30); // 30분 단위
 
-        // B. 2차원 배열 초기화 [날짜수][시간슬롯수] (예: 7일 x 18타임)
-        int[][] grid = new int[(int) totalDays][slotsPerDay];
+        // B. 2차원 배열 초기화 [날짜수][시간슬롯수]
+        int[][] teamGrid = new int[(int) totalDays][slotsPerDay];
+        int[][] myGrid = new int[(int) totalDays][slotsPerDay];
 
-        // C. 모든 응답을 순회하며 Grid 채우기
+        // C-1. 팀 전체 응답 채우기
+        LocalDateTime pollStartDateTime = poll.getStartDate().atStartOfDay();
         for (TimeResponse r : allResponses) {
-            fillGrid(grid, r, poll.getStartDate().atStartOfDay(), poll.getStartTimeOfDay(), slotsPerDay);
+            fillGrid(teamGrid, r, pollStartDateTime, poll.getStartTimeOfDay(), slotsPerDay);
         }
 
-        // D. 라벨 생성 (프론트 편의용)
+        // C-2. 내 응답만 채우기
+        for (TimeResponse r : myResponses) {
+            fillGrid(myGrid, r, pollStartDateTime, poll.getStartTimeOfDay(), slotsPerDay);
+        }
+
+        // D-1. 날짜 라벨 생성
         List<String> dateLabels = new ArrayList<>();
         poll.getStartDate().datesUntil(poll.getEndDate().plusDays(1))
                 .forEach(d -> dateLabels.add(d.format(DateTimeFormatter.ofPattern("MM-dd"))));
 
+        // D-2. 시간 라벨 생성 (30분 간격)
+        List<String> timeLabels = new ArrayList<>();
+        LocalTime t = poll.getStartTimeOfDay();
+        while (t.isBefore(poll.getEndTimeOfDay())) {
+            timeLabels.add(t.format(DateTimeFormatter.ofPattern("HH:mm")));
+            t = t.plusMinutes(30);
+        }
+
         return TimePollDto.DetailResponse.builder()
                 .pollId(poll.getPollPk())
                 .title(poll.getTitle())
-                .gridData(grid) // 2차원 배열 리턴
+                .teamGrid(teamGrid)
+                .myGrid(myGrid)
                 .dateLabels(dateLabels)
+                .timeLabels(timeLabels)
                 .build();
     }
 
     // Helper: 특정 응답 시간대를 Grid 인덱스로 변환하여 카운트 증가
     private void fillGrid(int[][] grid, TimeResponse r, LocalDateTime pollStartDateTime, LocalTime dayStartTime, int slotsPerDay) {
-        // 이 로직은 꽤 정교해야 합니다.
-        // 간단히 설명하면: Response의 시작/종료 시간을 "몇 번째 날", "몇 번째 슬롯"인지 계산해서 grid[day][slot]++ 해줍니다.
 
         LocalDateTime current = r.getStartTimeUtc();
         while (current.isBefore(r.getEndTimeUtc())) {
