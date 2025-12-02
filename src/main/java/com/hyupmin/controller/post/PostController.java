@@ -67,10 +67,8 @@ public class PostController {
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponse> getPostById(
             @PathVariable Long postId,
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.User user
+            @AuthenticationPrincipal String userEmail
     ) {
-
-        String userEmail = user.getUsername();
 
         PostResponse response = postService.getPostById(postId, userEmail);
         return ResponseEntity.ok(response);
