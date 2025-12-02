@@ -59,9 +59,8 @@ public class TimePollDto {
     public static class DetailResponse {
         private Long pollId;
         private String title;
-        // 2차원 배열: [날짜_인덱스][시간_슬롯_인덱스] = 가능 인원 수
-        // 예: gridData[0][2] -> 첫째날, 3번째 시간타임(예: 10:00~10:30)에 가능한 사람 수
-        private int[][] gridData;
+        private int[][] teamGrid;
+        private int[][] myGrid;
         private List<String> dateLabels; // ["11-18", "11-19", ...]
         private List<String> timeLabels; // ["09:00", "09:30", ...]
     }
