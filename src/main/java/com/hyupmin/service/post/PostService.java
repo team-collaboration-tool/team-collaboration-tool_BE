@@ -131,19 +131,19 @@ public class PostService {
         Post post = postRepository.findPostWithUserAndProjectById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        // ✅ 로그인 사용자 조회
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
         boolean hasVoted = false;
 
-        // ✅ 이 게시글에 투표가 있고, Vote 엔티티가 존재할 때만 체크
-        if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
-            hasVoted = voteRecordRepository
-                    .existsByUserAndVoteOption_Vote(user, post.getVote());
+        // 로그인한 경우에만 투표 여부 체크
+        if (userEmail != null) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+            if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
+                hasVoted = voteRecordRepository
+                        .existsByUserAndVoteOption_Vote(user, post.getVote());
+            }
         }
 
-        // ✅ hasVoted 정보를 포함해서 DTO 생성
         return new PostResponse(post, hasVoted);
     }
 
