@@ -12,6 +12,8 @@ public class VoteResponse {
     private String title;
     private List<VoteOptionDto> options; // 아래 내부 클래스 사용
 
+    private boolean hasVoted; //로그인 사용자 해당 투표 참여 여부
+
     // Entity -> DTO 변환 생성자
     public VoteResponse(Vote vote) {
         this.id = vote.getId();
@@ -19,6 +21,16 @@ public class VoteResponse {
         this.options = vote.getVoteOptions().stream()
                 .map(VoteOptionDto::new)
                 .collect(Collectors.toList());
+        this.hasVoted = false;
+    }
+
+    public VoteResponse(Vote vote, boolean hasVoted) {
+        this.id = vote.getId();
+        this.title = vote.getTitle();
+        this.options = vote.getVoteOptions().stream()
+                .map(VoteOptionDto::new)
+                .collect(Collectors.toList());
+        this.hasVoted = hasVoted;
     }
 
     @Getter

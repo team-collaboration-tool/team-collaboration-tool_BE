@@ -29,8 +29,12 @@ public class PostResponse {
     // 첨부파일 ID 목록
     private List<Long> attachmentIds;
 
-    // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
     public PostResponse(Post post) {
+        this(post, null);   // 다른 생성자 내부 호출
+    }
+
+    // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
+    public PostResponse(Post post, Boolean hasVoted) {
         this.postPk = post.getPostPk();
         this.projectPk = post.getProject().getProjectPk();
         this.authorName = post.getUser().getName();
@@ -44,7 +48,8 @@ public class PostResponse {
 
         // 투표 정보 매핑 (hasVoting == true 이고 실제 Vote가 있을 때만)
         if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
-            this.vote = new VoteResponse(post.getVote());
+            boolean voted = hasVoted != null && hasVoted; // null이면 false
+            this.vote = new VoteResponse(post.getVote(), voted);
         } else {
             this.vote = null;
         }
