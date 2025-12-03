@@ -31,6 +31,7 @@ public class CalendarEventResponse {
 
     private Long eventPk;
     private Long projectPk;
+    private String projectName;
     private Long createUserId;
     private String createUserName;
     private String title;
@@ -48,6 +49,7 @@ public class CalendarEventResponse {
         return CalendarEventResponse.builder()
                 .eventPk(event.getEventPk())
                 .projectPk(event.getProject().getProjectPk())
+                .projectName(event.getProject().getName())
                 .createUserId(event.getCreateUser().getUserPk())
                 .createUserName(event.getCreateUser().getName())
                 .title(event.getTitle())
