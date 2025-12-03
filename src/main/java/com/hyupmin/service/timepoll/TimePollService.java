@@ -58,19 +58,23 @@ public class TimePollService {
     @Transactional(readOnly = true)
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
 
-        return timePollRepository.findAll().stream()
-                .filter(p -> p.getProject().getProjectPk().equals(projectId))
-                .map(p -> {
+        LocalDate today = LocalDate.now();
 
+        // DB에서부터 프로젝트별+마감기한 오늘(포함) 이후인 것만 가져오기
+        List<TimePoll> polls =
+                timePollRepository.findByProject_ProjectPkAndEndDateGreaterThanEqual(projectId, today);
+
+        return polls.stream()
+                .map(p -> {
                     long days = ChronoUnit.DAYS.between(p.getStartDate(), p.getEndDate()) + 1;
 
                     return TimePollDto.PollSummary.builder()
                             .pollId(p.getPollPk())
                             .title(p.getTitle())
-                            .startDate(p.getStartDate())             // 그대로 LocalDate 사용
+                            .startDate(p.getStartDate())
                             .endDate(p.getEndDate())
-                            .duration((int) days)                    // 계산된 며칠짜리
-                            .startTime(p.getStartTimeOfDay())        // LocalTime 그대로
+                            .duration((int) days)
+                            .startTime(p.getStartTimeOfDay())
                             .endTime(p.getEndTimeOfDay())
                             .userCount(
                                     p.getResponses() == null ? 0 : p.getResponses().size()
