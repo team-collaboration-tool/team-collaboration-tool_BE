@@ -23,6 +23,7 @@ public class PostResponse {
     private Boolean hasVoting;
     private Boolean hasFile;
 
+    private Boolean isAuthor;
     // 투표 정보 (게시글에 투표가 있을 경우에만 포함)
     private VoteResponse vote;
 
@@ -30,11 +31,14 @@ public class PostResponse {
     private List<Long> attachmentIds;
 
     public PostResponse(Post post) {
-        this(post, null);   // 다른 생성자 내부 호출
+        this(post, null, null);
     }
 
-    // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
     public PostResponse(Post post, Boolean hasVoted) {
+        this(post, hasVoted, null);
+    }
+    // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
+    public PostResponse(Post post, Boolean hasVoted, Boolean isAuthor) {
         this.postPk = post.getPostPk();
         this.projectPk = post.getProject().getProjectPk();
         this.authorName = post.getUser().getName();
@@ -45,6 +49,8 @@ public class PostResponse {
         this.isNotice = post.getIsNotice();
         this.hasVoting = post.getHasVoting();
         this.hasFile = post.getHasFile();
+
+        this.isAuthor = isAuthor != null && isAuthor;
 
         // 투표 정보 매핑 (hasVoting == true 이고 실제 Vote가 있을 때만)
         if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
