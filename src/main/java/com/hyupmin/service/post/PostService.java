@@ -87,13 +87,16 @@ public class PostService {
                 throw new IllegalArgumentException("투표 제목과 항목은 필수입니다.");
             }
 
+            boolean allowMultiple = Boolean.TRUE.equals(request.getAllowMultipleChoices());
+            boolean anonymous = Boolean.TRUE.equals(request.getIsAnonymous());
+
             Vote vote = Vote.builder()
                     .post(newPost)
                     .title(request.getVoteTitle())
                     .startTime(LocalDateTime.now())
                     .endTime(null) // 필요하면 PostCreateRequest에 endTime 추가해서 받기
-                    .allowMultipleChoices(false) // 기본값
-                    .isAnonymous(false)         // 기본값
+                    .allowMultipleChoices(allowMultiple)
+                    .isAnonymous(anonymous)
                     .build();
 
             for (String optionText : request.getVoteOptions()) {
@@ -119,7 +122,7 @@ public class PostService {
         }
 
         // 7. DTO 반환
-        return new PostResponse(savedPost);
+        return new PostResponse(savedPost, false, true);
     }
 
     /**

@@ -24,4 +24,12 @@ public class PostCreateRequest {
     // 4. 투표 정보 (만약 hasVoting == true 라면)
     private String voteTitle;         // 투표 제목
     private List<String> voteOptions; // 투표 항목 리스트 (예: ["찬성", "반대"])
+
+    // true  -> 중복 선택 가능
+    // false -> 단일 선택만 가능
+    private Boolean allowMultipleChoices;
+
+    // true  -> 익명 투표
+    // false -> 실명 투표
+    private Boolean isAnonymous;
 }

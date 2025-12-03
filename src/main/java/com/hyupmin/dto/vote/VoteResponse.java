@@ -12,6 +12,15 @@ public class VoteResponse {
     private String title;
     private List<VoteOptionDto> options; // 아래 내부 클래스 사용
 
+    // true  -> 중복 선택
+    // false -> 단일 선택
+    private Boolean allowMultipleChoices;
+
+    // true  -> 익명 투표
+    // false -> 실명 투표
+    private Boolean isAnonymous;
+
+
     private boolean hasVoted; //로그인 사용자 해당 투표 참여 여부
 
     // Entity -> DTO 변환 생성자
@@ -21,6 +30,8 @@ public class VoteResponse {
         this.options = vote.getVoteOptions().stream()
                 .map(VoteOptionDto::new)
                 .collect(Collectors.toList());
+        this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
+        this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = false;
     }
 
@@ -30,6 +41,9 @@ public class VoteResponse {
         this.options = vote.getVoteOptions().stream()
                 .map(VoteOptionDto::new)
                 .collect(Collectors.toList());
+
+        this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
+        this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = hasVoted;
     }
 
