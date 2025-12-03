@@ -132,11 +132,16 @@ public class PostService {
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
         boolean hasVoted = false;
+        boolean isAuthor = false;
 
         // 로그인한 경우에만 투표 여부 체크
         if (userEmail != null) {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+            if (post.getUser() != null && post.getUser().getUserPk() != null) {
+                isAuthor = post.getUser().getUserPk().equals(user.getUserPk());
+            }
 
             if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
                 hasVoted = voteRecordRepository
@@ -144,7 +149,7 @@ public class PostService {
             }
         }
 
-        return new PostResponse(post, hasVoted);
+        return new PostResponse(post, hasVoted, isAuthor);
     }
 
     /**
