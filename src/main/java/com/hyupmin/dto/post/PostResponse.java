@@ -1,8 +1,10 @@
 package com.hyupmin.dto.post;
 
+
 import lombok.Getter;
 import com.hyupmin.domain.post.Post;
 import com.hyupmin.domain.attachmentFile.AttachmentFile;
+import com.hyupmin.domain.vote.VoteRecord;
 import com.hyupmin.dto.vote.VoteResponse;
 
 import java.time.LocalDateTime;
@@ -68,5 +70,21 @@ public class PostResponse {
                     .toList();
         }
 
+    }
+
+    public PostResponse(Post post, Boolean hasVoted, Boolean isAuthor, List<VoteRecord> voteRecords) {
+        // 우선 기존 로직 그대로 적용
+        this(post, hasVoted, isAuthor);
+
+        // 실명 투표 + 기록이 있을 때만, vote를 덮어쓰기
+        if (Boolean.TRUE.equals(post.getHasVoting())
+                && post.getVote() != null
+                && Boolean.FALSE.equals(post.getVote().getIsAnonymous())
+                && voteRecords != null
+                && !voteRecords.isEmpty()) {
+
+            boolean voted = hasVoted != null && hasVoted;
+            this.vote = new VoteResponse(post.getVote(), voted, voteRecords);
+        }
     }
 }

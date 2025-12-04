@@ -1,10 +1,15 @@
 package com.hyupmin.dto.vote;
 
+
 import lombok.Getter;
 import com.hyupmin.domain.vote.Vote;
 import com.hyupmin.domain.vote.VoteOption;
+import com.hyupmin.domain.vote.VoteRecord;
+import com.hyupmin.domain.user.User;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Collections;
 
 @Getter
 public class VoteResponse {
@@ -47,16 +52,50 @@ public class VoteResponse {
         this.hasVoted = hasVoted;
     }
 
+    public VoteResponse(Vote vote, boolean hasVoted, List<VoteRecord> voteRecords) {
+        this.id = vote.getId();
+        this.title = vote.getTitle();
+
+        this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
+        this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
+        this.hasVoted = hasVoted;
+
+        // voteOption.id 기준으로 투표자들 그룹핑
+        Map<Long, List<String>> votersByOptionId = voteRecords.stream()
+                .collect(Collectors.groupingBy(
+                        vr -> vr.getVoteOption().getId(),
+                        Collectors.mapping(
+                                vr -> vr.getUser().getName(),
+                                Collectors.toList()
+                        )
+                ));
+
+        this.options = vote.getVoteOptions().stream()
+                .map(option -> new VoteOptionDto(
+                        option,
+                        votersByOptionId.getOrDefault(option.getId(), Collections.emptyList())
+                ))
+                .collect(Collectors.toList());
+    }
+
     @Getter
     public static class VoteOptionDto {
         private Long id;
         private String content;
         private Integer count;
 
+        private List<String> voters;
+
+        // 기존 용도(익명 투표나 목록 조회용)
         public VoteOptionDto(VoteOption option) {
+            this(option, null);
+        }
+
+        public VoteOptionDto(VoteOption option, List<String> voters) {
             this.id = option.getId();
             this.content = option.getContent();
             this.count = option.getCount();
+            this.voters = voters;
         }
     }
 }
