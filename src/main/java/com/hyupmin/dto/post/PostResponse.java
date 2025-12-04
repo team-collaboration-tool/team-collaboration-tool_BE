@@ -26,11 +26,17 @@ public class PostResponse {
     private Boolean hasFile;
 
     private Boolean isAuthor;
-    // 투표 정보 (게시글에 투표가 있을 경우에만 포함)
+
     private VoteResponse vote;
 
-    // 첨부파일 ID 목록
     private List<Long> attachmentIds;
+
+    private Long postNumber;
+
+
+    public void setPostNumber(Long postNumber) {
+        this.postNumber = postNumber;
+    }
 
     public PostResponse(Post post) {
         this(post, null, null);
@@ -39,7 +45,7 @@ public class PostResponse {
     public PostResponse(Post post, Boolean hasVoted) {
         this(post, hasVoted, null);
     }
-    // *** 엔티티(Post)를 DTO(PostResponse)로 변환하는 생성자 ***
+
     public PostResponse(Post post, Boolean hasVoted, Boolean isAuthor) {
         this.postPk = post.getPostPk();
         this.projectPk = post.getProject().getProjectPk();
@@ -54,15 +60,13 @@ public class PostResponse {
 
         this.isAuthor = isAuthor != null && isAuthor;
 
-        // 투표 정보 매핑 (hasVoting == true 이고 실제 Vote가 있을 때만)
         if (Boolean.TRUE.equals(post.getHasVoting()) && post.getVote() != null) {
-            boolean voted = hasVoted != null && hasVoted; // null이면 false
+            boolean voted = hasVoted != null && hasVoted;
             this.vote = new VoteResponse(post.getVote(), voted);
         } else {
             this.vote = null;
         }
 
-        // 첨부파일 ID 목록 매핑
         if (post.getAttachmentFiles() != null) {
             this.attachmentIds = post.getAttachmentFiles().stream()
                     .filter(file -> !file.isDeleted())
@@ -73,10 +77,9 @@ public class PostResponse {
     }
 
     public PostResponse(Post post, Boolean hasVoted, Boolean isAuthor, List<VoteRecord> voteRecords) {
-        // 우선 기존 로직 그대로 적용
+
         this(post, hasVoted, isAuthor);
 
-        // 실명 투표 + 기록이 있을 때만, vote를 덮어쓰기
         if (Boolean.TRUE.equals(post.getHasVoting())
                 && post.getVote() != null
                 && Boolean.FALSE.equals(post.getVote().getIsAnonymous())

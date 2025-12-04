@@ -2,11 +2,11 @@ package com.hyupmin.service.timepoll;
 
 import lombok.RequiredArgsConstructor;
 import com.hyupmin.domain.project.Project;
-import com.hyupmin.repository.project.ProjectRepository; //수정
+import com.hyupmin.repository.project.ProjectRepository;
 import com.hyupmin.domain.timepoll.TimePoll;
 import com.hyupmin.domain.timeResponse.TimeResponse;
 import com.hyupmin.domain.user.User;
-import com.hyupmin.repository.user.UserRepository; //수정
+import com.hyupmin.repository.user.UserRepository;
 import com.hyupmin.dto.timepoll.TimePollDto;
 import com.hyupmin.repository.TimePoll.TimePollRepository;
 import com.hyupmin.repository.TimePoll.TimeResponseRepository;
@@ -33,20 +33,18 @@ public class TimePollService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
-    // 1. 투표 생성
     public void createTimePoll(TimePollDto.CreateRequest request) {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new IllegalArgumentException("Project not found"));
         User creator = userRepository.findById(request.getCreatorId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // duration(일수)를 가지고 endDate 계산
         TimePoll poll = TimePoll.builder()
                 .project(project)
                 .creator(creator)
                 .title(request.getTitle())
                 .startDate(request.getStartDate())
-                .endDate(request.getStartDate().plusDays(request.getDuration() - 1)) // 날짜 계산
+                .endDate(request.getStartDate().plusDays(request.getDuration() - 1))
                 .startTimeOfDay(request.getStartTimeOfDay())
                 .endTimeOfDay(request.getEndTimeOfDay())
                 .build();
@@ -54,13 +52,11 @@ public class TimePollService {
         timePollRepository.save(poll);
     }
 
-    // 2. 투표 목록 조회 (Summary)
     @Transactional(readOnly = true)
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
 
         LocalDate today = LocalDate.now();
 
-        // DB에서부터 프로젝트별+마감기한 오늘(포함) 이후인 것만 가져오기
         List<TimePoll> polls =
                 timePollRepository.findByProject_ProjectPkAndEndDateGreaterThanEqual(projectId, today);
 
@@ -84,9 +80,7 @@ public class TimePollService {
                 .collect(Collectors.toList());
     }
 
-    // 3. 응답 제출
     public void submitResponse(TimePollDto.SubmitRequest request) {
-        // (기존 로직과 동일: 삭제 후 재생성)
         timeResponseRepository.deleteByPoll_PollPkAndUser_UserPk(request.getPollId(), request.getUserId());
 
         TimePoll poll = timePollRepository.findById(request.getPollId()).orElseThrow();
@@ -96,7 +90,7 @@ public class TimePollService {
                 .map(t -> TimeResponse.builder()
                         .poll(poll)
                         .user(user)
-                        .startTimeUtc(LocalDateTime.parse(t.getStart())) // String -> LocalDateTime
+                        .startTimeUtc(LocalDateTime.parse(t.getStart()))
                         .endTimeUtc(LocalDateTime.parse(t.getEnd()))
                         .build())
                 .collect(Collectors.toList());
@@ -104,18 +98,14 @@ public class TimePollService {
         timeResponseRepository.saveAll(responses);
     }
 
-    // ★ 4. 상세 조회 (2차원 배열 히트맵 변환 로직) ★
     @Transactional(readOnly = true)
     public TimePollDto.DetailResponse getPollDetailGrid(Long pollId, Long userId) {
         TimePoll poll = timePollRepository.findById(pollId).orElseThrow();
 
-        // 팀 전체 응답
         List<TimeResponse> allResponses = timeResponseRepository.findByPoll_PollPk(pollId);
-        // 현재 유저 응답
         List<TimeResponse> myResponses =
                 timeResponseRepository.findByPoll_PollPkAndUser_UserPk(pollId, userId);
 
-        // A. 시간 슬롯(행/열) 계산
         long totalDays = Duration.between(
                 poll.getStartDate().atStartOfDay(),
                 poll.getEndDate().atStartOfDay()
@@ -128,27 +118,22 @@ public class TimePollService {
 
         int slotsPerDay = (int) (minutesPerDay / 30); // 30분 단위
 
-        // B. 2차원 배열 초기화 [날짜수][시간슬롯수]
         int[][] teamGrid = new int[(int) totalDays][slotsPerDay];
         int[][] myGrid = new int[(int) totalDays][slotsPerDay];
 
-        // C-1. 팀 전체 응답 채우기
         LocalDateTime pollStartDateTime = poll.getStartDate().atStartOfDay();
         for (TimeResponse r : allResponses) {
             fillGrid(teamGrid, r, pollStartDateTime, poll.getStartTimeOfDay(), slotsPerDay);
         }
 
-        // C-2. 내 응답만 채우기
         for (TimeResponse r : myResponses) {
             fillGrid(myGrid, r, pollStartDateTime, poll.getStartTimeOfDay(), slotsPerDay);
         }
 
-        // D-1. 날짜 라벨 생성
         List<String> dateLabels = new ArrayList<>();
         poll.getStartDate().datesUntil(poll.getEndDate().plusDays(1))
                 .forEach(d -> dateLabels.add(d.format(DateTimeFormatter.ofPattern("MM-dd"))));
 
-        // D-2. 시간 라벨 생성 (30분 간격)
         List<String> timeLabels = new ArrayList<>();
         LocalTime t = poll.getStartTimeOfDay();
         while (t.isBefore(poll.getEndTimeOfDay())) {
@@ -166,24 +151,21 @@ public class TimePollService {
                 .build();
     }
 
-    // Helper: 특정 응답 시간대를 Grid 인덱스로 변환하여 카운트 증가
     private void fillGrid(int[][] grid, TimeResponse r, LocalDateTime pollStartDateTime, LocalTime dayStartTime, int slotsPerDay) {
 
         LocalDateTime current = r.getStartTimeUtc();
         while (current.isBefore(r.getEndTimeUtc())) {
-            // 1. 날짜 인덱스 계산
+
             long dayIdx = Duration.between(pollStartDateTime.toLocalDate().atStartOfDay(), current.toLocalDate().atStartOfDay()).toDays();
 
-            // 2. 시간 슬롯 인덱스 계산
             long minuteOffset = Duration.between(dayStartTime, current.toLocalTime()).toMinutes();
             int slotIdx = (int) (minuteOffset / 30);
 
-            // 3. 범위 체크 후 카운트 증가
             if (dayIdx >= 0 && dayIdx < grid.length && slotIdx >= 0 && slotIdx < slotsPerDay) {
                 grid[(int) dayIdx][slotIdx]++;
             }
 
-            current = current.plusMinutes(30); // 30분씩 전진
+            current = current.plusMinutes(30);
         }
     }
 }

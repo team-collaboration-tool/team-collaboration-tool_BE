@@ -2,11 +2,11 @@ package com.hyupmin.repository.post;
 
 import com.hyupmin.domain.post.Post;
 import com.hyupmin.domain.project.Project;
-import org.springframework.data.domain.Page; // import
-import org.springframework.data.domain.Pageable; // import
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query; // import
-import org.springframework.data.repository.query.Param; // import
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
-    // JpaRepository<엔티티_이름, PK_타입>
     /**
      * 특정 프로젝트의 게시글 목록을 페이징하여 조회합니다.
      * * N+1 문제를 해결하기 위해 'JOIN FETCH p.user'를 사용,
@@ -48,5 +47,46 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             "AND p.isNotice = true " +
             "ORDER BY p.createdAt DESC")
     List<Post> findNoticePostsByProject(@Param("project") Project project);
+
+    // 1) 제목으로 검색
+    @Query(value = "SELECT p FROM Post p " +
+            "JOIN FETCH p.user u " +
+            "WHERE p.project = :project " +
+            "AND LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+            countQuery = "SELECT COUNT(p) FROM Post p " +
+                    "WHERE p.project = :project " +
+                    "AND LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Post> searchByProjectAndTitle(@Param("project") Project project,
+                                       @Param("keyword") String keyword,
+                                       Pageable pageable);
+
+    // 2) 작성자 이름으로 검색
+    @Query(value = "SELECT p FROM Post p " +
+            "JOIN FETCH p.user u " +
+            "WHERE p.project = :project " +
+            "AND LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+            countQuery = "SELECT COUNT(p) FROM Post p " +
+                    "JOIN p.user u " +
+                    "WHERE p.project = :project " +
+                    "AND LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Post> searchByProjectAndAuthor(@Param("project") Project project,
+                                        @Param("keyword") String keyword,
+                                        Pageable pageable);
+
+    // 3) 제목 OR 작성자 통합 검색
+    @Query(value = "SELECT p FROM Post p " +
+            "JOIN FETCH p.user u " +
+            "WHERE p.project = :project " +
+            "AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')))",
+            countQuery = "SELECT COUNT(p) FROM Post p " +
+                    "JOIN p.user u " +
+                    "WHERE p.project = :project " +
+                    "AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "     OR LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Post> searchByProjectAndTitleOrAuthor(@Param("project") Project project,
+                                               @Param("keyword") String keyword,
+                                               Pageable pageable);
+
 }
 

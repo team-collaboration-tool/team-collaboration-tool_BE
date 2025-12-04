@@ -43,7 +43,6 @@ public class Vote {
     @Builder.Default
     private List<VoteOption> voteOptions = new ArrayList<>();
 
-    // === 연관관계 편의 메서드 ===
     public void setPost(Post post) {
         this.post = post;
     }
@@ -70,6 +69,6 @@ public class Vote {
     }
 
     public void clearOptions() {
-        this.voteOptions.clear(); // orphanRemoval 때문에 기존 옵션들 삭제됨
+        this.voteOptions.clear();
     }
 }

@@ -18,7 +18,7 @@ public class TimePollDto {
         private Long creatorId;
         private String title;
         private LocalDate startDate;
-        private Integer duration; // 예: 3일치면 3
+        private Integer duration;
         private LocalTime startTimeOfDay;
         private LocalTime endTimeOfDay;
     }
@@ -31,10 +31,10 @@ public class TimePollDto {
         private String title;
         private LocalDate startDate;
         private LocalDate endDate;
-        private Integer duration;     // 며칠짜리인지
-        private LocalTime startTime;  // 하루 시작 시간
-        private LocalTime endTime;    // 하루 끝 시간
-        private Integer userCount;    // 참여자 수
+        private Integer duration;
+        private LocalTime startTime;
+        private LocalTime endTime;
+        private Integer userCount;
     }
 
     // 3. [제출 요청] 내 시간표 제출
@@ -42,18 +42,18 @@ public class TimePollDto {
     public static class SubmitRequest {
         private Long pollId;
         private Long userId;
-        private List<TimeRange> availableTimes; // 내가 선택한 시간 구간들
+        private List<TimeRange> availableTimes;
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class TimeRange {
-        private String start; // LocalDateTime 대신 String (ISO-8601) 추천
+        private String start;
         private String end;
     }
 
-    // 4. [상세/히트맵 응답] 2차원 배열 데이터 포함!
+    // 4. [상세/히트맵 응답]
     @Data
     @Builder
     public static class DetailResponse {
@@ -61,7 +61,7 @@ public class TimePollDto {
         private String title;
         private int[][] teamGrid;
         private int[][] myGrid;
-        private List<String> dateLabels; // ["11-18", "11-19", ...]
-        private List<String> timeLabels; // ["09:00", "09:30", ...]
+        private List<String> dateLabels;
+        private List<String> timeLabels;
     }
 }

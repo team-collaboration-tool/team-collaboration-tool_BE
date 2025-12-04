@@ -12,6 +12,7 @@ import com.hyupmin.domain.vote.VoteOption;
 import com.hyupmin.dto.post.PostCreateRequest;
 import com.hyupmin.dto.post.PostResponse;
 import com.hyupmin.dto.post.PostUpdateRequest;
+import com.hyupmin.dto.post.PostSearchType;
 import com.hyupmin.repository.post.PostRepository;
 import com.hyupmin.repository.project.ProjectRepository;
 import com.hyupmin.repository.user.UserRepository;
@@ -23,11 +24,13 @@ import com.hyupmin.repository.attachmentFile.AttachmentFileRepository;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.hyupmin.file.FileStore;
 import com.hyupmin.domain.attachmentFile.AttachmentFile;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.PageImpl;
 
 @Service
 @RequiredArgsConstructor
@@ -51,18 +54,14 @@ public class PostService {
                                    List<MultipartFile> files,
                                    String userEmail) throws IOException {
 
-        // 1. 작성자 조회
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 2. 프로젝트 조회
         Project project = projectRepository.findById(request.getProjectPk())
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        // 3. 파일 저장
         List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);
 
-        // 4. Post 엔티티 생성
         Post newPost = Post.builder()
                 .project(project)
                 .user(user)
@@ -73,14 +72,12 @@ public class PostService {
                 .hasFile(attachmentFiles != null && !attachmentFiles.isEmpty())
                 .build();
 
-        // 첨부파일 연관관계
         if (attachmentFiles != null) {
             for (AttachmentFile file : attachmentFiles) {
                 file.setPost(newPost);
             }
         }
 
-        // 5. 투표 생성 로직
         if (Boolean.TRUE.equals(request.getHasVoting())) {
             if (request.getVoteTitle() == null
                     || request.getVoteOptions() == null
@@ -95,7 +92,7 @@ public class PostService {
                     .post(newPost)
                     .title(request.getVoteTitle())
                     .startTime(LocalDateTime.now())
-                    .endTime(null) // 필요하면 PostCreateRequest에 endTime 추가해서 받기
+                    .endTime(null)
                     .allowMultipleChoices(allowMultiple)
                     .isAnonymous(anonymous)
                     .build();
@@ -109,20 +106,17 @@ public class PostService {
                 vote.addOption(option);
             }
 
-            newPost.setVote(vote); // hasVoting도 true로 맞춰짐
+            newPost.setVote(vote);
         }
 
-        // 6. 저장
         Post savedPost = postRepository.save(newPost);
 
-        // 첨부파일 DB 저장
         if (attachmentFiles != null) {
             for (AttachmentFile file : attachmentFiles) {
                 attachmentFileRepository.save(file);
             }
         }
 
-        // 7. DTO 반환
         return new PostResponse(savedPost, false, true);
     }
 
@@ -139,7 +133,7 @@ public class PostService {
         boolean isAuthor = false;
 
         List<VoteRecord> voteRecords = null;
-        // 로그인한 경우에만 투표 여부 체크
+
         if (userEmail != null) {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -153,7 +147,7 @@ public class PostService {
                         .existsByUserAndVoteOption_Vote(user, post.getVote());
             }
         }
-        // 실명 투표라면 전체 투표 기록 조회
+
         if (Boolean.TRUE.equals(post.getHasVoting())
                 && post.getVote() != null
                 && Boolean.FALSE.equals(post.getVote().getIsAnonymous())) {
@@ -161,20 +155,69 @@ public class PostService {
             voteRecords = voteRecordRepository.findByVoteOption_Vote(post.getVote());
         }
 
-        // 실명 투표면 voteRecords 포함된 생성자 사용
+
         return new PostResponse(post, hasVoted, isAuthor, voteRecords);
 
     }
 
     /**
-     * 특정 프로젝트의 게시글 목록 조회 (페이징 적용)
+     * 특정 프로젝트의 게시글 목록 조회 (페이징 + 검색)
      */
-    public Page<PostResponse> getPostsByProject(Long projectPk, Pageable pageable) {
+    public Page<PostResponse> getPostsByProject(Long projectPk,
+                                                String keyword,
+                                                PostSearchType searchType,
+                                                Pageable pageable) {
+
         Project project = projectRepository.findById(projectPk)
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        Page<Post> postsPage = postRepository.findByProjectWithUser(project, pageable);
-        return postsPage.map(PostResponse::new);
+        Page<Post> postsPage;
+
+
+        if (keyword == null || keyword.isBlank()) {
+            postsPage = postRepository.findByProjectWithUser(project, pageable);
+
+        } else {
+
+            if (searchType == null) {
+                searchType = PostSearchType.ALL;
+            }
+
+            switch (searchType) {
+                case TITLE:
+                    postsPage = postRepository.searchByProjectAndTitle(project, keyword, pageable);
+                    break;
+
+                case AUTHOR:
+                    postsPage = postRepository.searchByProjectAndAuthor(project, keyword, pageable);
+                    break;
+
+                case ALL:
+                default:
+                    postsPage = postRepository.searchByProjectAndTitleOrAuthor(project, keyword, pageable);
+                    break;
+            }
+        }
+
+        int pageNumber = postsPage.getNumber();
+        int pageSize = postsPage.getSize();
+        long totalElements = postsPage.getTotalElements();
+
+        int startIndex = pageNumber * pageSize;
+
+        List<PostResponse> dtoList = new ArrayList<>();
+
+        for (int i = 0; i < postsPage.getContent().size(); i++) {
+            Post post = postsPage.getContent().get(i);
+
+            long boardNo = totalElements - (startIndex + i);
+
+            PostResponse dto = new PostResponse(post);
+            dto.setPostNumber(boardNo);
+            dtoList.add(dto);
+        }
+
+        return new PageImpl<>(dtoList, postsPage.getPageable(), totalElements);
     }
 
     /**
@@ -186,27 +229,21 @@ public class PostService {
                                    List<MultipartFile> files,
                                    String userEmail) throws IOException {
 
-        // 1. 사용자 조회
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 2. 게시글 조회
         Post post = postRepository.findPostWithUserAndProjectById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        // 3. 권한 체크
         if (!post.getUser().equals(user)) {
             throw new SecurityException("수정 권한이 없습니다.");
         }
 
-        // 4. 게시글 기본 정보 수정
         post.update(request.getTitle(), request.getContent(), request.getIsNotice());
 
-        // 5. 기존 첨부파일 조회
         List<AttachmentFile> existingFiles =
                 attachmentFileRepository.findByPost_PostPkAndIsDeletedFalse(postId);
 
-        // 6. 새 파일 저장
         List<AttachmentFile> newFiles = fileStore.storeFiles(files);
         if (newFiles != null) {
             for (AttachmentFile file : newFiles) {
@@ -215,28 +252,26 @@ public class PostService {
             }
         }
 
-        // 7. hasFile 재계산
         boolean hasAnyFile =
                 (existingFiles != null && !existingFiles.isEmpty())
                         || (newFiles != null && !newFiles.isEmpty());
         post.setHasFile(hasAnyFile);
 
-        // 8. 투표 로직 (hasVoting가 null이면 건드리지 않음)
         if (request.getHasVoting() != null) {
 
             if (!request.getHasVoting()) {
-                // 기존 투표가 있다면 삭제
+
                 if (post.getVote() != null) {
                     Vote existingVote = post.getVote();
-                    post.setVote(null);          // Post 기준 관계 해제
-                    voteRepository.delete(existingVote); // 실제 DB 삭제
+                    post.setVote(null);
+                    voteRepository.delete(existingVote);
                 }
                 post.setHasVoting(false);
 
             } else {
-                // 투표 켜기 또는 수정하기
+
                 if (post.getVote() == null) {
-                    // 1) 기존에 투표 없던 글에 새로 생성
+
                     if (request.getVoteTitle() == null
                             || request.getVoteOptions() == null
                             || request.getVoteOptions().isEmpty()) {
@@ -275,7 +310,7 @@ public class PostService {
                     post.setHasVoting(true);
 
                 } else {
-                    // 2) 기존 투표 수정
+
                     Vote vote = post.getVote();
 
                     if (request.getVoteTitle() != null) {
@@ -292,7 +327,7 @@ public class PostService {
                     }
 
                     if (request.getVoteOptions() != null) {
-                        // 옵션 전체 갈아엎기
+
                         vote.clearOptions();
                         for (String optionText : request.getVoteOptions()) {
                             if (optionText == null || optionText.isBlank()) continue;
@@ -309,7 +344,7 @@ public class PostService {
             }
         }
 
-        // 9. 응답 반환
+
         return new PostResponse(post);
     }
 
@@ -337,23 +372,18 @@ public class PostService {
     @Transactional
     public PostResponse markAsNotice(Long postId, String userEmail) {
 
-        // 1. 사용자 조회
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 2. 게시글 조회
         Post post = postRepository.findPostWithUserAndProjectById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        // 3. 권한 체크 (작성자만 가능)
         if (!post.getUser().equals(user)) {
             throw new SecurityException("공지 등록 권한이 없습니다.");
         }
 
-        // 4. 공지사항으로 변경
         post.setIsNotice(true);
 
-        // 5. 응답 반환
         return new PostResponse(post);
     }
 
@@ -383,14 +413,11 @@ public class PostService {
      */
     public List<PostResponse> getNoticePostsByProject(Long projectPk) {
 
-        // 1. 프로젝트 조회
         Project project = projectRepository.findById(projectPk)
                 .orElseThrow(() -> new IllegalArgumentException("프로젝트를 찾을 수 없습니다."));
 
-        // 2. 공지글 목록 조회
         List<Post> noticePosts = postRepository.findNoticePostsByProject(project);
 
-        // 3. PostResponse 리스트로 변환
         return noticePosts.stream()
                 .map(PostResponse::new)
                 .toList();
