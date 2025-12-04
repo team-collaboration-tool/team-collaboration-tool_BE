@@ -15,7 +15,7 @@ import java.util.Collections;
 public class VoteResponse {
     private Long id;
     private String title;
-    private List<VoteOptionDto> options; // 아래 내부 클래스 사용
+    private List<VoteOptionDto> options;
 
     // true  -> 중복 선택
     // false -> 단일 선택
@@ -28,7 +28,6 @@ public class VoteResponse {
 
     private boolean hasVoted; //로그인 사용자 해당 투표 참여 여부
 
-    // Entity -> DTO 변환 생성자
     public VoteResponse(Vote vote) {
         this.id = vote.getId();
         this.title = vote.getTitle();
@@ -60,7 +59,6 @@ public class VoteResponse {
         this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = hasVoted;
 
-        // voteOption.id 기준으로 투표자들 그룹핑
         Map<Long, List<String>> votersByOptionId = voteRecords.stream()
                 .collect(Collectors.groupingBy(
                         vr -> vr.getVoteOption().getId(),

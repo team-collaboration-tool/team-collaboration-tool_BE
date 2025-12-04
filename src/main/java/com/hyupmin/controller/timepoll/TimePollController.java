@@ -32,18 +32,14 @@ public class TimePollController {
     @PostMapping
     public ResponseEntity<?> createPoll(@RequestBody TimePollDto.CreateRequest request) {
         try {
-            // 1) 시간조율 생성
             timePollService.createTimePoll(request);
 
-            // 2) 생성 후, 해당 프로젝트의 전체 목록 재조회
             List<TimePollDto.PollSummary> pollList = timePollService.getPollList(request.getProjectId());
             return ResponseEntity.ok(pollList);
 
         } catch (Exception e) {
-            // 서버 콘솔에도 전체 스택 출력
             e.printStackTrace();
 
-            // Postman 에는 예외 타입 + 메시지 문자열로 내려주기 (디버깅용)
             String message = e.getClass().getSimpleName() +
                     " : " + (e.getMessage() != null ? e.getMessage() : "no message");
             return ResponseEntity.internalServerError().body(message);

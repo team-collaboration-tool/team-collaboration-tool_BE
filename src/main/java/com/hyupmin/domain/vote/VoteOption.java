@@ -19,7 +19,7 @@ public class VoteOption {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String content; // 항목 내용 (예: "A안", "B안")
+    private String content;
 
     @Builder.Default
     private Integer count = 0; // 득표수
@@ -34,8 +34,6 @@ public class VoteOption {
     @Builder.Default
     private List<VoteRecord> voteRecords = new ArrayList<>();
 
-
-    // 연관관계 설정
     public void setVote(Vote vote) {
         this.vote = vote;
     }
@@ -46,12 +44,10 @@ public class VoteOption {
         record.setVoteOption(this);
     }
 
-    // 투표하기 (카운트 증가)
     public void increaseCount() {
         this.count++;
     }
 
-    //기존 기록 삭제
     public void decreaseCount() {
         if (this.count > 0) {
             this.count--;

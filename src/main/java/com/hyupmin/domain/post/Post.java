@@ -55,7 +55,6 @@ public class Post extends BaseTimeEntity {
     private Vote vote;
 
 
-    // 게시글 수정 메서드
     public void update(String title, String content, Boolean isNotice) {
         if (title != null) {
             this.title = title;
@@ -68,22 +67,20 @@ public class Post extends BaseTimeEntity {
         }
     }
 
-    // 공지 여부 설정
     public void setIsNotice(Boolean isNotice) {
         this.isNotice = isNotice;
     }
 
-    // 투표 설정 (양방향 편의 메서드)
+
     public void setVote(Vote vote) {
         this.vote = vote;
         if (vote != null && vote.getPost() != this) {
             vote.setPost(this);
         }
-        // hasVoting 자동 동기화
+
         this.hasVoting = (vote != null);
     }
 
-    // 파일 여부 설정
     public void setHasFile(boolean hasAnyFile) {
         this.hasFile = hasAnyFile;
     }
