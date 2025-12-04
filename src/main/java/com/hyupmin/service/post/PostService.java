@@ -1,5 +1,6 @@
 package com.hyupmin.service.post;
 
+import com.hyupmin.domain.vote.VoteRecord;
 import com.hyupmin.repository.vote.VoteRepository;
 import com.hyupmin.repository.vote.VoteRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -137,6 +138,7 @@ public class PostService {
         boolean hasVoted = false;
         boolean isAuthor = false;
 
+        List<VoteRecord> voteRecords = null;
         // 로그인한 경우에만 투표 여부 체크
         if (userEmail != null) {
             User user = userRepository.findByEmail(userEmail)
@@ -151,8 +153,17 @@ public class PostService {
                         .existsByUserAndVoteOption_Vote(user, post.getVote());
             }
         }
+        // 실명 투표라면 전체 투표 기록 조회
+        if (Boolean.TRUE.equals(post.getHasVoting())
+                && post.getVote() != null
+                && Boolean.FALSE.equals(post.getVote().getIsAnonymous())) {
 
-        return new PostResponse(post, hasVoted, isAuthor);
+            voteRecords = voteRecordRepository.findByVoteOption_Vote(post.getVote());
+        }
+
+        // 실명 투표면 voteRecords 포함된 생성자 사용
+        return new PostResponse(post, hasVoted, isAuthor, voteRecords);
+
     }
 
     /**
