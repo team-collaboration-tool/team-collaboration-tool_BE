@@ -26,4 +26,8 @@ public class VoteRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_pk", nullable = false)
     private User user;
+
+    public void setVoteOption(VoteOption voteOption) {
+        this.voteOption = voteOption;
+    }
 }
