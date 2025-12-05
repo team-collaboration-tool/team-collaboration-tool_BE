@@ -30,10 +30,8 @@
 ### 전준환 - 게시판 및 투표 시스템
 - **게시글 시스템**
   - 게시글 CRUD (생성, 조회, 수정, 삭제)
-  - 게시글 페이징 및 정렬 (작성일, 조회수, 댓글수)
-  - 검색 기능 (제목, 내용, 작성자)
-  - 멀티파트 파일 첨부 및 관리
-  - 첨부 파일 다운로드
+  - 게시글 페이징 및 정렬 (작성일, 작성자, 투표 포함 여부)
+  - 검색 기능 (제목, 작성자)
   
 - **공지사항 시스템**
   - 프로젝트별 공지사항 생성
@@ -52,12 +50,6 @@
   - 드래그 방식 시간 선택
   - 시간대별 참여자 수 집계
   - 최적 시간대 시각화
-  
-- **파일 관리**
-  - UUID 기반 파일명 생성 (충돌 방지)
-  - 멀티파트 파일 업로드/다운로드
-  - 게시글/투표 파일 첨부
-  - 파일 크기 제한 (단일 10MB, 전체 50MB)
 
 ### 강재호 - 프로젝트 및 일정 관리
 - **프로젝트 관리**
@@ -269,10 +261,9 @@ GET    /api/posts                  # 게시글 목록 (페이징, 검색, 정렬
 GET    /api/posts/{id}             # 게시글 상세
 PUT    /api/posts/{id}             # 게시글 수정
 DELETE /api/posts/{id}             # 게시글 삭제
-GET    /api/posts/download/{fileId} # 첨부파일 다운로드
 
 # 검색 파라미터
-- searchType: TITLE, CONTENT, AUTHOR
+- searchType: TITLE, AUTHOR
 - keyword: 검색어
 - sort: LATEST, VIEWS, COMMENTS
 ```
@@ -324,7 +315,6 @@ DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
 - 허용 Origin:
   - `http://localhost:3000` (React 개발)
   - `http://localhost:5173` (Vite 개발)
-  - `http://3.22.89.177` (프론트엔드 EC2)
 - 허용 메서드: GET, POST, PUT, DELETE, PATCH, OPTIONS
 - 인증 정보 포함: true
 
@@ -405,8 +395,7 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 
 ### 게시글 & 공지사항
 - [x] 게시글 CRUD 및 멀티파트 파일 첨부
-- [x] 게시글 페이징, 검색, 정렬 (작성일/조회수/댓글수)
-- [x] 첨부파일 다운로드
+- [x] 게시글 페이징, 검색, 정렬 (작성일/작성자/투표 포함 여부부)
 - [x] 프로젝트별 공지사항 시스템
 
 ### 투표 시스템
@@ -470,7 +459,6 @@ main        # 프로덕션 브랜치
       <b>전준환</b><br>
       게시판 시스템<br>
       투표 기능<br>
-      파일 관리
     </td>
     <td align="center">
       <b>강재호</b><br>
