@@ -7,6 +7,6 @@ import lombok.Getter;
 @Builder
 public class ProjectCodeResponse {
     private Long projectPk;
-    private String projectName; // 참여코드 빼고 다 없어도 될 것 같기도
-    private String joinCode; // 실제 참여 코드
+    private String projectName;
+    private String joinCode;
 }

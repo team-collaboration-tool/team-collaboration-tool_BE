@@ -33,8 +33,6 @@ public class Project {
     @JoinColumn(name = "project_owner_user_pk", nullable = false) // JoinColumn 이름 수정
     private User owner;
 
-    // == 연관 관계 ==
-
     // 1. 프로젝트 멤버 목록 (ProjectUser) 프로젝트와 사용자를 연결하는 중간테이블(projectUser)과 관계 설정.
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProjectUser> projectUsers = new ArrayList<>();
@@ -52,7 +50,6 @@ public class Project {
     private List<TimePoll> timePolls = new ArrayList<>();
 
 
-    // 생성자
     public Project(String name, User owner) {
         this.name = name;
         this.owner = owner;
@@ -60,8 +57,6 @@ public class Project {
         this.joinCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
-    // == 비즈니스 로직 ==
-    // 프로젝트 정보 수정
     public void update(String name) {
         if (name != null) this.name = name;
     }
