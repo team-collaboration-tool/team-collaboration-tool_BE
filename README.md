@@ -69,7 +69,6 @@
 - **캘린더 기능**
   - 일정 생성 및 CRUD
   - 일정 참가자 관리 (Many-to-Many)
-  - 7일 이내 마감 일정 조회
   - 프로젝트별/전체 일정 조회
   
 ## 기술 스택
@@ -305,7 +304,6 @@ POST   /api/time-poll/submit              # 시간 선택 제출
 GET    /api/calendar/me            # 내 전체 일정
 GET    /api/calendar/projects/{projectId} # 프로젝트 일정
 POST   /api/calendar/projects/{projectId} # 일정 생성
-GET    /api/calendar/projects/{projectId}/upcoming # 7일 이내 마감 일정
 GET    /api/calendar/projects/{projectId}/events/{eventId} # 일정 상세
 PUT    /api/calendar/projects/{projectId}/events/{eventId} # 일정 수정
 DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
