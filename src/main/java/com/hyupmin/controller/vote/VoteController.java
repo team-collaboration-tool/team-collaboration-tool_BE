@@ -3,6 +3,7 @@ package com.hyupmin.controller.vote;
 import lombok.RequiredArgsConstructor;
 import com.hyupmin.dto.vote.VoteResponse;
 import com.hyupmin.dto.vote.VoteCreateRequest;
+import com.hyupmin.dto.vote.VoteRecastRequest;
 import com.hyupmin.service.vote.VoteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,20 @@ public class VoteController {
             @PathVariable Long optionId
     ) {
         voteService.reCastVote(optionId, userEmail);
+        return ResponseEntity.ok("재투표가 완료되었습니다.");
+    }
+
+    /**
+     * (중복 선택용) 재투표: 이번 선택 상태 전체로 갈아끼우기
+     * [PUT] /api/votes/{voteId}/recast
+     */
+    @PutMapping("/{voteId}/recast")
+    public ResponseEntity<String> reCastVoteAll(
+            @AuthenticationPrincipal String userEmail,
+            @PathVariable Long voteId,
+            @RequestBody VoteRecastRequest request
+    ) {
+        voteService.reCastVoteAll(voteId, request.getSelectedOptionIds(), userEmail);
         return ResponseEntity.ok("재투표가 완료되었습니다.");
     }
 
