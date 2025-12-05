@@ -13,9 +13,9 @@ public class PostUpdateRequest {
     private String content;
     private Boolean isNotice;
 
-    private Boolean hasVoting;          // 수정 후 이 글에 투표를 둘지 여부
-    private String voteTitle;           // (선택) 투표 제목 수정
-    private List<String> voteOptions;   // (선택) 옵션 전체 갈아끼우기
+    private Boolean hasVoting;
+    private String voteTitle;
+    private List<String> voteOptions;
     private Boolean allowMultipleChoices;
     private Boolean isAnonymous;
     private LocalDateTime voteEndTime;

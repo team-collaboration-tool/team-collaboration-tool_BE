@@ -35,7 +35,6 @@ public class Notice {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 생성자 (간단한 공지)
     public Notice(Project project, User createUser, String title, String content) {
         this.project = project;
         this.createUser = createUser;

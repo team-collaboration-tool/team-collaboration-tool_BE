@@ -1,7 +1,7 @@
 package com.hyupmin.domain.vote;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor; // 1. import
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +11,7 @@ import com.hyupmin.domain.user.User;
 @Table(name = "vote_response")
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor // 3. 추가
+@AllArgsConstructor
 @Builder
 public class VoteRecord {
 
@@ -26,4 +26,8 @@ public class VoteRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_pk", nullable = false)
     private User user;
+
+    public void setVoteOption(VoteOption voteOption) {
+        this.voteOption = voteOption;
+    }
 }

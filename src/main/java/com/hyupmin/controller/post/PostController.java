@@ -5,6 +5,7 @@ import com.hyupmin.domain.attachmentFile.AttachmentFile;
 import com.hyupmin.dto.post.PostCreateRequest;
 import com.hyupmin.dto.post.PostResponse;
 import com.hyupmin.dto.post.PostUpdateRequest;
+import com.hyupmin.dto.post.PostSearchType;
 import com.hyupmin.repository.attachmentFile.AttachmentFileRepository;
 import com.hyupmin.service.post.PostService;
 import lombok.RequiredArgsConstructor;
@@ -67,10 +68,8 @@ public class PostController {
     @GetMapping("/{postId}")
     public ResponseEntity<PostResponse> getPostById(
             @PathVariable Long postId,
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.User user
+            @AuthenticationPrincipal String userEmail
     ) {
-
-        String userEmail = user.getUsername();
 
         PostResponse response = postService.getPostById(postId, userEmail);
         return ResponseEntity.ok(response);
@@ -117,10 +116,14 @@ public class PostController {
     @GetMapping
     public ResponseEntity<Page<PostResponse>> getAllPosts(
             @RequestParam Long projectPk,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false, defaultValue = "ALL") PostSearchType searchType,
             @PageableDefault(size = 10, sort = {"isNotice", "createdAt"}, direction = Sort.Direction.DESC)
             Pageable pageable) {
 
-        Page<PostResponse> responsePage = postService.getPostsByProject(projectPk, pageable);
+        Page<PostResponse> responsePage =
+                postService.getPostsByProject(projectPk, keyword, searchType, pageable);
+
         return ResponseEntity.ok(responsePage);
     }
 
@@ -172,26 +175,21 @@ public class PostController {
             @PathVariable Long attachmentId
     ) throws MalformedURLException, UnsupportedEncodingException {
 
-        // 1. 첨부파일 조회 (논리 삭제되지 않은 것만)
         AttachmentFile attachment = attachmentFileRepository
                 .findByAttachmentPkAndIsDeletedFalse(attachmentId)
                 .orElseThrow(() -> new IllegalArgumentException("첨부파일을 찾을 수 없습니다."));
 
-        // 2. 해당 첨부파일이 요청한 게시글(postId)의 첨부인지 검증
         if (!attachment.getPost().getPostPk().equals(postId)) {
             throw new IllegalArgumentException("해당 게시글의 첨부파일이 아닙니다.");
         }
 
-        // 3. 실제 파일 경로
         Path filePath = Paths.get(attachment.getFilePath());
 
-        // 4. Resource 생성
         Resource resource = new UrlResource(filePath.toUri());
         if (!resource.exists() || !resource.isReadable()) {
             throw new IllegalStateException("파일을 읽을 수 없습니다.");
         }
 
-        // 5. Content-Type 추론
         String contentType;
         try {
             contentType = Files.probeContentType(filePath);
@@ -202,13 +200,11 @@ public class PostController {
             contentType = "application/octet-stream";
         }
 
-        // 6. 다운로드 시 보여줄 파일 이름 (원본 이름 사용)
         String encodedFileName = URLEncoder.encode(attachment.getOriginalFileName(), "UTF-8")
                 .replaceAll("\\+", "%20");
 
         String contentDisposition = "attachment; filename=\"" + encodedFileName + "\"";
 
-        // 7. 파일 응답 반환
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)

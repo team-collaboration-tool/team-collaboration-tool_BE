@@ -28,7 +28,7 @@ public class NoticeController {
         return ResponseEntity.ok(response);
     }
 
-    // (참고) 공지사항 생성 API
+    // 공지사항 생성 API
     @PostMapping
     public ResponseEntity<NoticeResponse> createNotice(
             @PathVariable Long projectId,

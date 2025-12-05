@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,23 +34,20 @@ public class VoteService {
     private final PostRepository postRepository;
     private final VoteRepository voteRepository;
 
-    // ----------------- 투표하기 -----------------
     public void castVote(Long optionId, String userEmail) {
-        // 1. 옵션 조회
+
         VoteOption option = voteOptionRepository.findById(optionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 투표 항목입니다."));
         Vote vote = option.getVote();
 
-        // 2. 마감 여부 체크
         if (vote.getEndTime() != null && LocalDateTime.now().isAfter(vote.getEndTime())) {
             throw new IllegalStateException("이미 마감된 투표입니다.");
         }
 
-        // 3. 유저 조회
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 4. allowMultipleChoices 에 따라 검증 로직 분기
+
         if (Boolean.FALSE.equals(vote.getAllowMultipleChoices())) {
             // 단일 선택 투표 -> 이미 이 투표에 참여한 적 있으면 막기
             if (voteRecordRepository.existsByUserAndVoteOption_Vote(user, vote)) {
@@ -60,29 +60,26 @@ public class VoteService {
             }
         }
 
-        // 5. 투표 기록 저장
         VoteRecord record = VoteRecord.builder()
                 .user(user)
                 .voteOption(option)
                 .build();
         voteRecordRepository.save(record);
 
-        // 6. 득표수 +1
         option.increaseCount();
     }
 
-    // ----------------- 투표 생성 -----------------
     public VoteResponse createVote(VoteCreateRequest request, String userEmail) {
 
-        // 1. 게시글 조회
+
         Post post = postRepository.findById(request.getPostId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글입니다."));
 
-        // (선택) 작성자 확인용 - 투표 생성 권한 체크
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 2. Vote 엔티티 생성
+
         Vote vote = Vote.builder()
                 .post(post)
                 .title(request.getTitle())
@@ -96,25 +93,24 @@ public class VoteService {
                 )
                 .build();
 
-        // 3. 옵션들 생성 및 연관관계 설정
+
         if (request.getOptionContents() != null) {
             for (String content : request.getOptionContents()) {
-                if (content == null || content.isBlank()) continue; // 빈 값은 무시
+                if (content == null || content.isBlank()) continue;
                 VoteOption option = VoteOption.builder()
                         .content(content)
                         .count(0)
                         .build();
-                vote.addOption(option); // Vote 쪽에 옵션 추가 (연관관계 세팅)
+                vote.addOption(option);
             }
         }
 
-        // 4. 저장 (cascade 때문에 옵션도 같이 저장됨)
+        // 4. 저장 (cascade 때문에 옵션도 같이 저장)
         Vote saved = voteRepository.save(vote);
 
         return new VoteResponse(saved);
     }
 
-    // ----------------- 재투표 -----------------
     public void reCastVote(Long optionId, String userEmail) {
         VoteOption newOption = voteOptionRepository.findById(optionId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 투표 항목입니다."));
@@ -128,7 +124,7 @@ public class VoteService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 1) 단일 선택 투표일 때 (allowMultipleChoices = false)
+        // 단일 투표
         if (Boolean.FALSE.equals(vote.getAllowMultipleChoices())) {
 
             // 이 유저가 이 투표에서 했던 이전 선택들 전부 조회
@@ -152,10 +148,8 @@ public class VoteService {
             return;
         }
 
-        // 2) 다중 선택 투표일 때 (allowMultipleChoices = true)
-        // 여기서는 "이 옵션에 대한 내 선택을 토글"하는 개념으로 처리
-
-        // 이 유저가 이 옵션에 이미 투표했는지 확인
+        //중복 투표
+        // 유저가 이 옵션에 이미 투표했는지 확인
         boolean alreadyVotedThisOption =
                 voteRecordRepository.existsByUserAndVoteOption(user, newOption);
 
@@ -177,6 +171,77 @@ public class VoteService {
                     .build();
             voteRecordRepository.save(newRecord);
             newOption.increaseCount();
+        }
+    }
+
+    /**
+     * 최종 선택 목록 전체를 기준으로 재투표
+     * - 기존에 이 유저가 이 투표에서 선택한 기록을 전부 가져와서
+     *   -> 이번 selectedOptionIds에 없는 것들은 삭제 & count 감소
+     *   -> 이번 selectedOptionIds에 새로 들어온 것들만 추가 & count 증가
+     */
+    public void reCastVoteAll(Long voteId, List<Long> selectedOptionIds, String userEmail) {
+
+        if (selectedOptionIds == null || selectedOptionIds.isEmpty()) {
+            throw new IllegalArgumentException("최소 한 개 이상의 항목을 선택해야 합니다.");
+        }
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        Vote vote = voteRepository.findById(voteId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 투표입니다."));
+
+        // 마감 여부 체크
+        if (vote.getEndTime() != null && LocalDateTime.now().isAfter(vote.getEndTime())) {
+            throw new IllegalStateException("이미 마감된 투표입니다.");
+        }
+
+        // 단일 선택 투표인데 여러 개 선택하면 막기
+        if (Boolean.FALSE.equals(vote.getAllowMultipleChoices()) && selectedOptionIds.size() > 1) {
+            throw new IllegalArgumentException("단일 선택 투표에서는 하나의 항목만 선택할 수 있습니다.");
+        }
+
+        // 1. 이 유저가 이 투표에서 했던 이전 선택 전체 조회
+        List<VoteRecord> existingRecords =
+                voteRecordRepository.findByUserAndVoteOption_Vote(user, vote);
+
+        // 2. 이번 요청에서 선택된 옵션 id 집합
+        Set<Long> newSelection = new HashSet<>(selectedOptionIds);
+
+        // 3. 현재 DB에 저장된 옵션 id 집합
+        Set<Long> alreadySelected = existingRecords.stream()
+                .map(r -> r.getVoteOption().getId())
+                .collect(Collectors.toSet());
+
+        // 4. 이번 선택에서 빠진 애들 → 삭제 & count 감소
+        for (VoteRecord record : existingRecords) {
+            Long optionId = record.getVoteOption().getId();
+            if (!newSelection.contains(optionId)) {
+                VoteOption option = record.getVoteOption();
+                option.decreaseCount();
+                voteRecordRepository.delete(record);
+            }
+        }
+
+        // 5. 새로 선택된 애들 중 기존에 없던 것들만 추가
+        for (Long optionId : newSelection) {
+            if (!alreadySelected.contains(optionId)) {
+                VoteOption option = voteOptionRepository.findById(optionId)
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 투표 항목입니다."));
+
+                // 보안: 이 옵션이 진짜 이 투표에 속한 건지 확인
+                if (!option.getVote().getId().equals(vote.getId())) {
+                    throw new IllegalArgumentException("해당 투표에 속하지 않는 항목입니다.");
+                }
+
+                VoteRecord newRecord = VoteRecord.builder()
+                        .user(user)
+                        .voteOption(option)
+                        .build();
+                voteRecordRepository.save(newRecord);
+                option.increaseCount();
+            }
         }
     }
 }
