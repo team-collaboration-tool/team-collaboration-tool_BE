@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+
 @Getter
 @NoArgsConstructor
 public class PostCreateRequest {
@@ -29,4 +30,7 @@ public class PostCreateRequest {
 
     // 익명 실명 투표
     private Boolean isAnonymous;
+
+    //투표 마감 시간
+    private String voteEndTime;
 }
