@@ -6,6 +6,8 @@ import com.hyupmin.domain.vote.Vote;
 import com.hyupmin.domain.vote.VoteOption;
 import com.hyupmin.domain.vote.VoteRecord;
 import com.hyupmin.domain.user.User;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -28,6 +30,8 @@ public class VoteResponse {
 
     private boolean hasVoted; //로그인 사용자 해당 투표 참여 여부
 
+    private LocalDateTime endTime;
+
     public VoteResponse(Vote vote) {
         this.id = vote.getId();
         this.title = vote.getTitle();
@@ -37,6 +41,8 @@ public class VoteResponse {
         this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
         this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = false;
+
+        this.endTime = vote.getEndTime();
     }
 
     public VoteResponse(Vote vote, boolean hasVoted) {
@@ -49,6 +55,8 @@ public class VoteResponse {
         this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
         this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = hasVoted;
+
+        this.endTime = vote.getEndTime();
     }
 
     public VoteResponse(Vote vote, boolean hasVoted, List<VoteRecord> voteRecords) {
@@ -58,6 +66,8 @@ public class VoteResponse {
         this.allowMultipleChoices = Boolean.TRUE.equals(vote.getAllowMultipleChoices());
         this.isAnonymous = Boolean.TRUE.equals(vote.getIsAnonymous());
         this.hasVoted = hasVoted;
+
+        this.endTime = vote.getEndTime();
 
         Map<Long, List<String>> votersByOptionId = voteRecords.stream()
                 .collect(Collectors.groupingBy(
