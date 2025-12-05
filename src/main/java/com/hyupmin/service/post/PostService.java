@@ -64,9 +64,13 @@ public class PostService {
 
         List<AttachmentFile> attachmentFiles = fileStore.storeFiles(files);
 
+        Long maxPostNumber = postRepository.findMaxPostNumberByProject(project);
+        Long nextPostNumber = maxPostNumber + 1;
+
         Post newPost = Post.builder()
                 .project(project)
                 .user(user)
+                .postNumber(nextPostNumber)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .isNotice(Boolean.TRUE.equals(request.getIsNotice()))
@@ -188,10 +192,8 @@ public class PostService {
 
         Page<Post> postsPage;
 
-
         if (keyword == null || keyword.isBlank()) {
             postsPage = postRepository.findByProjectWithUser(project, pageable);
-
         } else {
 
             if (searchType == null) {
@@ -214,26 +216,17 @@ public class PostService {
             }
         }
 
-        int pageNumber = postsPage.getNumber();
-        int pageSize = postsPage.getSize();
-        long totalElements = postsPage.getTotalElements();
-
-        int startIndex = pageNumber * pageSize;
-
         List<PostResponse> dtoList = new ArrayList<>();
 
-        for (int i = 0; i < postsPage.getContent().size(); i++) {
-            Post post = postsPage.getContent().get(i);
-
-            long boardNo = totalElements - (startIndex + i);
-
+        for (Post post : postsPage.getContent()) {
             PostResponse dto = new PostResponse(post);
-            dto.setPostNumber(boardNo);
+            dto.setPostNumber(post.getPostNumber());
             dtoList.add(dto);
         }
 
-        return new PageImpl<>(dtoList, postsPage.getPageable(), totalElements);
+        return new PageImpl<>(dtoList, postsPage.getPageable(), postsPage.getTotalElements());
     }
+
 
     /**
      * 게시글 수정
@@ -378,8 +371,20 @@ public class PostService {
             throw new SecurityException("삭제 권한이 없습니다.");
         }
 
+        Project project = post.getProject();
+        Long deletedPostNumber = post.getPostNumber();
+        
         postRepository.delete(post);
+
+        List<Post> postsToShift =
+                postRepository.findByProjectAndPostNumberGreaterThanOrderByPostNumberAsc(project, deletedPostNumber);
+
+        for (Post p : postsToShift) {
+            p.setPostNumber(p.getPostNumber() - 1);
+            // save 안 해도 @Transactional + 더티체킹으로 UPDATE 됨
+        }
     }
+
 
     /**
      * 게시글을 공지사항으로 등록
