@@ -24,6 +24,8 @@ import com.hyupmin.repository.attachmentFile.AttachmentFileRepository;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,11 +90,24 @@ public class PostService {
             boolean allowMultiple = Boolean.TRUE.equals(request.getAllowMultipleChoices());
             boolean anonymous = Boolean.TRUE.equals(request.getIsAnonymous());
 
+
+            LocalDateTime endTime = null;
+            if (request.getVoteEndTime() != null && !request.getVoteEndTime().isBlank()) {
+                try {
+                    endTime = LocalDateTime.parse(
+                            request.getVoteEndTime(),
+                            DateTimeFormatter.ISO_LOCAL_DATE_TIME // "yyyy-MM-dd'T'HH:mm:ss"
+                    );
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("투표 마감 시간 형식이 올바르지 않습니다. 예) 2025-12-31T23:59:00");
+                }
+            }
+
             Vote vote = Vote.builder()
                     .post(newPost)
                     .title(request.getVoteTitle())
                     .startTime(LocalDateTime.now())
-                    .endTime(null)
+                    .endTime(endTime)
                     .allowMultipleChoices(allowMultiple)
                     .isAnonymous(anonymous)
                     .build();
