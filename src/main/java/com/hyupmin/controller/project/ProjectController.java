@@ -1,5 +1,6 @@
 package com.hyupmin.controller.project;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.hyupmin.dto.project.*;
 import com.hyupmin.service.project.ProjectService;
@@ -51,7 +52,7 @@ public class ProjectController {
     @PutMapping("/{projectId}")
     public ResponseEntity<ProjectResponseDTO> updateProject(
             @PathVariable Long projectId,
-            @RequestBody ProjectCreateRequest request,
+            @Valid @RequestBody ProjectCreateRequest request,
             @AuthenticationPrincipal String email) {
 
         ProjectResponseDTO response = projectService.updateProject(projectId, request, email);
