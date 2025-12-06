@@ -411,7 +411,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - [x] Swagger API 문서화
 - [x] CORS 설정
 - [x] Actuator Health Check
-- [x] 멀티파트 파일 업로드 (단일 10MB, 전체 50MB)
 
 ## Git 브랜치 전략
 
