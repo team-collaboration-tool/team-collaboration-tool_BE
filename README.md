@@ -19,6 +19,7 @@
   - 사용자 정보 조회/수정
   - 비밀번호 변경
   - 회원 탈퇴 (Soft Delete 방식)
+  - 입력값 유효성 검사 (이메일 형식, 비밀번호 규칙, 전화번호)
   
 - **프로젝트 인프라**
   - AWS Elastic Beanstalk 배포
@@ -27,7 +28,7 @@
   - Swagger UI 통합
   - 공통 예외 처리 구조
 
-### 전준환 - 게시판 및 투표 시스템, 투표표
+### 전준환 - 게시판 및 투표 시스템
 - **게시글 시스템**
   - 게시글 CRUD (생성, 조회, 수정, 삭제)
   - 게시글 페이징 및 정렬 (작성일, 작성자, 투표 포함 여부)
@@ -50,7 +51,6 @@
   - 드래그 방식 시간 선택
   - 시간대별 참여자 수 집계
   - 최적 시간대 시각화
-  
 
 ### 강재호 - 프로젝트 및 일정 관리
 - **프로젝트 관리**
@@ -62,7 +62,6 @@
 - **캘린더 기능**
   - 일정 생성 및 CRUD
   - 일정 참가자 관리 (Many-to-Many)
-  - 7일 이내 마감 일정 조회
   - 프로젝트별/전체 일정 조회
   
 ## 기술 스택
@@ -193,6 +192,7 @@ jwt:
   secret: ${JWT_SECRET:hyupmin-dev-secret-key-change-in-production}
   expiration: 86400000  # 24시간
 
+
 # 개발 환경 (H2 사용)
 spring:
   datasource:
@@ -254,7 +254,7 @@ DELETE /api/projects/{id}/kick     # 멤버 추방
 
 ### 게시글
 ```
-POST   /api/posts                  # 게시글 작성 (멀티파트 파일 첨부)
+POST   /api/posts                  # 게시글 작성 
 GET    /api/posts                  # 게시글 목록 (페이징, 검색, 정렬)
 GET    /api/posts/{id}             # 게시글 상세
 PUT    /api/posts/{id}             # 게시글 수정
@@ -293,7 +293,6 @@ POST   /api/time-poll/submit              # 시간 선택 제출
 GET    /api/calendar/me            # 내 전체 일정
 GET    /api/calendar/projects/{projectId} # 프로젝트 일정
 POST   /api/calendar/projects/{projectId} # 일정 생성
-GET    /api/calendar/projects/{projectId}/upcoming # 7일 이내 마감 일정
 GET    /api/calendar/projects/{projectId}/events/{eventId} # 일정 상세
 PUT    /api/calendar/projects/{projectId}/events/{eventId} # 일정 수정
 DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
@@ -314,6 +313,7 @@ DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
 - 허용 Origin:
   - `http://localhost:3000` (React 개발)
   - `http://localhost:5173` (Vite 개발)
+  - 프론트엔드 배포 서버 (AWS EC2)
 - 허용 메서드: GET, POST, PUT, DELETE, PATCH, OPTIONS
 - 인증 정보 포함: true
 
@@ -338,11 +338,58 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - **User**: 사용자 정보 (이메일, 비밀번호, 프로필)
 - **Project**: 프로젝트 정보 (이름, 설명, 초대 코드)
 - **ProjectUser**: 프로젝트-사용자 관계 (역할: OWNER/MEMBER)
-- **Post**: 게시글 (제목, 내용)
+- **Post**: 게시글 (제목, 내용, 작성자, 투표 포함 여부)
 - **Notice**: 공지사항 (프로젝트별, OWNER만 생성 가능)
 - **Vote**: 투표 (단일/중복 선택)
 - **VoteOption**: 투표 선택지
-- 부)
+- **VoteResponse**: 사용자 투표 응답
+- **TimePoll**: 시간 조율 투표 (날짜/시간 그리드)
+- **TimeResponse**: 시간대별 사용자 응답
+- **CalendarEvent**: 일정 (시작/종료 시간, 참가자)
+
+## 배포 정보
+
+### AWS Elastic Beanstalk
+- **플랫폼**: Java 17 (Corretto)
+- **인스턴스**: t2.micro
+- **리전**: ap-northeast-2 (Seoul)
+- **포트**: 5000 (Elastic Beanstalk 기본 포트)
+- **환경 변수**:
+  - `SPRING_PROFILE`: prod
+  - `JWT_SECRET`: JWT 비밀키 (256비트 이상)
+  - `DB_DRIVER`: com.mysql.cj.jdbc.Driver
+  - `DB_URL`: RDS MySQL 엔드포인트
+  - `DB_USERNAME`: 데이터베이스 사용자명
+  - `DB_PASSWORD`: 데이터베이스 비밀번호
+  - `DDL_AUTO`: update
+  - `DB_DIALECT`: org.hibernate.dialect.MySQLDialect
+  - `FILE_UPLOAD_DIR`: /var/app/uploads/
+
+### AWS RDS
+- **엔진**: MySQL 8.0
+- **인스턴스**: db.t3.micro (Free Tier)
+- **스토리지**: 20GB gp2
+- **리전**: ap-northeast-2 (Seoul)
+
+
+## 완료된 기능
+
+### 인증 & 사용자
+- [x] JWT 기반 인증 시스템
+- [x] 사용자 관리 (회원가입, 로그인, 프로필 수정, 탈퇴)
+- [x] BCrypt 비밀번호 암호화
+- [x] Spring Security + JWT 필터 체인
+- [x] 입력값 유효성 검사 (이메일, 비밀번호, 전화번호)
+
+### 프로젝트 관리
+- [x] 프로젝트 생성 및 CRUD
+- [x] UUID 기반 초대 코드 시스템
+- [x] 프로젝트 멤버 관리 (OWNER/MEMBER 역할)
+- [x] 멤버 승인/거절/추방 기능
+
+### 게시글 & 공지사항
+- [x] 게시글 CRUD
+- [x] 게시글 페이징, 검색, 정렬 (게시글 번호/작성일/작성자/투표 포함 여부)
 - [x] 프로젝트별 공지사항 시스템
 
 ### 투표 시스템
@@ -355,7 +402,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 ### 캘린더
 - [x] 캘린더 일정 CRUD
 - [x] 일정 참가자 관리
-- [x] 7일 이내 마감 일정 조회
 - [x] 프로젝트별/전체 일정 조회
 
 ### 인프라 & 설정
@@ -365,7 +411,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - [x] Swagger API 문서화
 - [x] CORS 설정
 - [x] Actuator Health Check
-- [x] 멀티파트 파일 업로드 (단일 10MB, 전체 50MB)
 
 ## Git 브랜치 전략
 
