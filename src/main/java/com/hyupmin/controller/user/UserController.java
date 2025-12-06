@@ -1,6 +1,7 @@
 package com.hyupmin.controller.user;
 
 import com.hyupmin.dto.user.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.hyupmin.domain.user.User;
 import com.hyupmin.service.user.UserService;
@@ -26,6 +27,15 @@ public class UserController {
      */
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        // 이메일 형식 검증
+        String emailPattern = "^[a-zA-Z0-9]+@[a-zA-Z0-9]+\\.[a-zA-Z]+$";
+        if (!email.matches(emailPattern)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "available", false,
+                    "message", "이메일 형식이 올바르지 않습니다. (예: example@domain.com)"
+            ));
+        }
+        
         boolean exists = userService.isEmailExists(email);
 
         if (exists) {
@@ -45,7 +55,7 @@ public class UserController {
      * 회원가입 (비밀번호 암호화 + 검증)
      */
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody UserSignupRequestDTO request) {
+    public ResponseEntity<String> signup(@Valid @RequestBody UserSignupRequestDTO request) {
         try {
             User savedUser = userService.registerUser(request);
             return ResponseEntity.ok("회원가입 성공 \nEmail: " + savedUser.getEmail());
@@ -110,7 +120,7 @@ public class UserController {
     @PatchMapping("/update")
     public ResponseEntity<String> updateUser(
             @AuthenticationPrincipal String userEmail,
-            @RequestBody UserUpdateRequest request) {
+            @Valid @RequestBody UserUpdateRequest request) {
 
         try {
             userService.updateUser(userEmail, request);
@@ -159,7 +169,7 @@ public class UserController {
     @PatchMapping("/update/password")
     public ResponseEntity<String> updatePassword(
             @AuthenticationPrincipal String userEmail,
-            @RequestBody UserPasswordUpdateRequest request) {
+            @Valid @RequestBody UserPasswordUpdateRequest request) {
         try {
             userService.updatePassword(userEmail, request);
             return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
