@@ -19,6 +19,7 @@
   - 사용자 정보 조회/수정
   - 비밀번호 변경
   - 회원 탈퇴 (Soft Delete 방식)
+  - 입력값 유효성 검사 (이메일 형식, 비밀번호 규칙, 전화번호)
   
 - **프로젝트 인프라**
   - AWS Elastic Beanstalk 배포
@@ -191,9 +192,6 @@ jwt:
   secret: ${JWT_SECRET:hyupmin-dev-secret-key-change-in-production}
   expiration: 86400000  # 24시간
 
-# 파일 업로드
-file:
-  dir: ${FILE_UPLOAD_DIR:/var/app/uploads/}
 
 # 개발 환경 (H2 사용)
 spring:
@@ -256,7 +254,7 @@ DELETE /api/projects/{id}/kick     # 멤버 추방
 
 ### 게시글
 ```
-POST   /api/posts                  # 게시글 작성 (멀티파트 파일 첨부)
+POST   /api/posts                  # 게시글 작성 
 GET    /api/posts                  # 게시글 목록 (페이징, 검색, 정렬)
 GET    /api/posts/{id}             # 게시글 상세
 PUT    /api/posts/{id}             # 게시글 수정
@@ -315,6 +313,7 @@ DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
 - 허용 Origin:
   - `http://localhost:3000` (React 개발)
   - `http://localhost:5173` (Vite 개발)
+  - 프론트엔드 배포 서버 (AWS EC2)
 - 허용 메서드: GET, POST, PUT, DELETE, PATCH, OPTIONS
 - 인증 정보 포함: true
 
@@ -339,7 +338,7 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - **User**: 사용자 정보 (이메일, 비밀번호, 프로필)
 - **Project**: 프로젝트 정보 (이름, 설명, 초대 코드)
 - **ProjectUser**: 프로젝트-사용자 관계 (역할: OWNER/MEMBER)
-- **Post**: 게시글 (제목, 내용, 조회수, 댓글수)
+- **Post**: 게시글 (제목, 내용, 작성자, 투표 포함 여부)
 - **Notice**: 공지사항 (프로젝트별, OWNER만 생성 가능)
 - **Vote**: 투표 (단일/중복 선택)
 - **VoteOption**: 투표 선택지
@@ -347,7 +346,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - **TimePoll**: 시간 조율 투표 (날짜/시간 그리드)
 - **TimeResponse**: 시간대별 사용자 응답
 - **CalendarEvent**: 일정 (시작/종료 시간, 참가자)
-- **AttachmentFile**: 첨부파일 (UUID 기반 파일명)
 
 ## 배포 정보
 
@@ -373,11 +371,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - **스토리지**: 20GB gp2
 - **리전**: ap-northeast-2 (Seoul)
 
-### 파일 업로드 설정
-- **저장 경로**: `/var/app/uploads/` (배포 환경)
-- **최대 파일 크기**: 10MB (단일 파일)
-- **최대 요청 크기**: 50MB (전체 요청)
-- **파일명**: UUID 기반 (충돌 방지)
 
 ## 완료된 기능
 
@@ -386,6 +379,7 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - [x] 사용자 관리 (회원가입, 로그인, 프로필 수정, 탈퇴)
 - [x] BCrypt 비밀번호 암호화
 - [x] Spring Security + JWT 필터 체인
+- [x] 입력값 유효성 검사 (이메일, 비밀번호, 전화번호)
 
 ### 프로젝트 관리
 - [x] 프로젝트 생성 및 CRUD
@@ -394,8 +388,8 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 - [x] 멤버 승인/거절/추방 기능
 
 ### 게시글 & 공지사항
-- [x] 게시글 CRUD 및 멀티파트 파일 첨부
-- [x] 게시글 페이징, 검색, 정렬 (작성일/작성자/투표 포함 여부부)
+- [x] 게시글 CRUD
+- [x] 게시글 페이징, 검색, 정렬 (게시글 번호/작성일/작성자/투표 포함 여부)
 - [x] 프로젝트별 공지사항 시스템
 
 ### 투표 시스템
@@ -408,7 +402,6 @@ User (1) ─────< (N) ProjectUser (N) >───── (1) Project
 ### 캘린더
 - [x] 캘린더 일정 CRUD
 - [x] 일정 참가자 관리
-- [x] 7일 이내 마감 일정 조회
 - [x] 프로젝트별/전체 일정 조회
 
 ### 인프라 & 설정
