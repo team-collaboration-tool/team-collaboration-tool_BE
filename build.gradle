@@ -15,6 +15,9 @@ repositories {
 dependencies {
     // 웹 API용 (기본)
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     //  DB 연동
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
