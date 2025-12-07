@@ -32,8 +32,8 @@ public class TimePollDto {
         private LocalDate startDate;
         private LocalDate endDate;
         private Integer duration;
-        private LocalTime startTime;
-        private LocalTime endTime;
+        private LocalTime startTimeOfDay;
+        private LocalTime endTimeOfDay;
         private Integer userCount;
     }
 
