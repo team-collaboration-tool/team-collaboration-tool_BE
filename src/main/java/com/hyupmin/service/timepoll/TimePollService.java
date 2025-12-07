@@ -67,8 +67,8 @@ public class TimePollService {
                             .startDate(p.getStartDate())
                             .endDate(p.getEndDate())
                             .duration((int) days)
-                            .startTime(p.getStartTimeOfDay())
-                            .endTime(p.getEndTimeOfDay())
+                            .startTimeOfDay(p.getStartTimeOfDay())
+                            .endTimeOfDay(p.getEndTimeOfDay())
                             .userCount(
                                     p.getResponses() == null ? 0 : p.getResponses().size()
                             )
