@@ -13,10 +13,7 @@ import com.hyupmin.repository.TimePoll.TimeResponseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +52,7 @@ public class TimePollService {
     @Transactional(readOnly = true)
     public List<TimePollDto.PollSummary> getPollList(Long projectId) {
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
         List<TimePoll> polls =
                 timePollRepository.findByProject_ProjectPkAndEndDateGreaterThanEqual(projectId, today);
