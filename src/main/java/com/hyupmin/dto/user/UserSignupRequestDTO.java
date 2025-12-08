@@ -33,6 +33,5 @@ public class UserSignupRequestDTO {
     )
     private String phone;
 
-    @NotBlank(message = "분야는 필수입니다.")
     private String field;
 }
