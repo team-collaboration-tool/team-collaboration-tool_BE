@@ -130,7 +130,6 @@ src/main/java/com/hyupmin/
 │   ├── project/Project.java           # 프로젝트 엔티티
 │   ├── projectUser/ProjectUser.java   # 프로젝트-사용자 관계
 │   ├── calendar/CalendarEvent.java    # 일정 엔티티
-│   ├── attachmentFile/AttachmentFile.java # 첨부파일 엔티티
 │   └── BaseTimeEntity.java            # 공통 시간 필드
 │
 ├── service/                           # 비즈니스 로직
@@ -150,7 +149,6 @@ src/main/java/com/hyupmin/
 │   ├── TimePoll/TimePollRepository.java
 │   ├── project/ProjectRepository.java
 │   ├── calendar/CalendarRepository.java
-│   └── attachmentFile/AttachmentFileRepository.java
 │
 ├── dto/                              # 요청/응답 DTO
 │   ├── user/
@@ -161,7 +159,6 @@ src/main/java/com/hyupmin/
 │   ├── calendar/
 │   └── ErrorResponse.java
 │
-├── file/FileStore.java               # 파일 저장소 관리
 └── HyupminApplication.java           # 메인 애플리케이션
 ```
 
@@ -323,7 +320,7 @@ DELETE /api/calendar/projects/{projectId}/events/{eventId} # 일정 삭제
 User (1) ─────< (N) ProjectUser (N) >───── (1) Project
   │                                            │
   │                                            │
-  ├─< Post >─── AttachmentFile                │
+  ├─< Post                                     │
   │                                            │
   ├─< Notice (공지사항)                         │
   │                                            │
